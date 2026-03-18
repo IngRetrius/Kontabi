@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { UnitType } from "@/types/database";
+import type { UnitType, CommonArea } from "@/types/database";
+import { formatCOP } from "@/lib/utils/format";
+import { CommonAreasDialog } from "@/components/settings/common-areas-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,6 +23,10 @@ import {
   Package,
   ArrowRight,
   MapPin,
+  Landmark,
+  Users,
+  Clock,
+  DollarSign,
 } from "lucide-react";
 
 // -- Constants --------------------------------------------------------------
@@ -50,12 +56,18 @@ export default function StructureSettingsPage() {
     unitsByType: {} as Record<string, number>,
     totalFloors: 0,
   });
+  const [commonAreas, setCommonAreas] = useState<CommonArea[]>([]);
+  const [showAreasDialog, setShowAreasDialog] = useState(false);
 
   const fetchData = useCallback(async () => {
     const supabase = createClient();
-    const [buildingsRes, unitsRes] = await Promise.all([
+    const [buildingsRes, unitsRes, areasRes] = await Promise.all([
       supabase.from("buildings").select("id, floors"),
       supabase.from("units").select("id, unit_type"),
+      supabase
+        .from("common_areas")
+        .select("*")
+        .order("name", { ascending: true }),
     ]);
 
     const buildings = buildingsRes.data ?? [];
@@ -74,6 +86,7 @@ export default function StructureSettingsPage() {
       unitsByType,
       totalFloors,
     });
+    setCommonAreas((areasRes.data as CommonArea[]) ?? []);
     setLoading(false);
   }, []);
 
@@ -96,6 +109,8 @@ export default function StructureSettingsPage() {
       </div>
     );
   }
+
+  const activeAreas = commonAreas.filter((a) => a.is_active);
 
   return (
     <div className="space-y-6">
@@ -125,9 +140,9 @@ export default function StructureSettingsPage() {
               value={stats.totalFloors}
             />
             <StatBlock
-              icon={<MapPin className="h-4 w-4" />}
-              label="Tipos"
-              value={Object.keys(stats.unitsByType).length}
+              icon={<Landmark className="h-4 w-4" />}
+              label="Zonas comunes"
+              value={activeAreas.length}
             />
           </div>
         </CardContent>
@@ -173,6 +188,100 @@ export default function StructureSettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Common areas */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-sm">Zonas comunes</CardTitle>
+              <CardDescription>
+                Espacios compartidos del conjunto residencial
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAreasDialog(true)}
+            >
+              <Landmark className="mr-1.5 h-3.5 w-3.5" />
+              Gestionar
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {commonAreas.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                <Landmark className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  No hay zonas comunes registradas
+                </p>
+                <button
+                  className="mt-1 text-xs text-primary underline underline-offset-2"
+                  onClick={() => setShowAreasDialog(true)}
+                >
+                  Agregar la primera zona comun
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {commonAreas.map((area) => (
+                <div
+                  key={area.id}
+                  className={`rounded-lg border px-4 py-3 transition-colors ${
+                    !area.is_active ? "opacity-50" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Landmark className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="text-sm font-medium">{area.name}</span>
+                      {!area.is_active && (
+                        <Badge variant="secondary" className="text-xs">
+                          Inactiva
+                        </Badge>
+                      )}
+                      {area.is_bookable && area.is_active && (
+                        <Badge variant="outline" className="text-xs">
+                          Reservable
+                        </Badge>
+                      )}
+                    </div>
+
+                    {area.capacity != null && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
+                        <Users className="h-3 w-3" />
+                        {area.capacity}
+                      </span>
+                    )}
+                  </div>
+
+                  {(area.schedule || area.booking_cost > 0) && (
+                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 pl-6 text-xs text-muted-foreground/80">
+                      {area.schedule && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {area.schedule}
+                        </span>
+                      )}
+                      {area.booking_cost > 0 && (
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" />
+                          {formatCOP(area.booking_cost)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Actions */}
       <Card>
         <CardHeader>
@@ -197,18 +306,13 @@ export default function StructureSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Common areas placeholder */}
-      <Card className="border-dashed">
-        <CardHeader>
-          <CardTitle className="text-sm text-muted-foreground">
-            Zonas comunes
-          </CardTitle>
-          <CardDescription>
-            La gestion de zonas comunes (salon social, piscina, gimnasio) se
-            habilitara proximamente en esta seccion.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      {/* Common areas dialog */}
+      <CommonAreasDialog
+        open={showAreasDialog}
+        onOpenChange={setShowAreasDialog}
+        commonAreas={commonAreas}
+        onUpdate={fetchData}
+      />
     </div>
   );
 }
