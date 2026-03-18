@@ -211,4 +211,10 @@ SELECT public.upsert_tenant_setting('00000000-0000-0000-0000-000000000001', 'ove
 SELECT public.upsert_tenant_setting('00000000-0000-0000-0000-000000000001', 'report_header_text', 'Conjunto Residencial Altos del Parque - NIT 901.234.567-0');
 SELECT public.upsert_tenant_setting('00000000-0000-0000-0000-000000000001', 'primary_color', '#1e3a5f');
 
+-- =============================================
+-- 7. CHART OF ACCOUNTS: Plan de cuentas NIIF Grupo 3
+-- =============================================
+
+SELECT public.seed_chart_of_accounts('00000000-0000-0000-0000-000000000001');
+
 COMMIT;

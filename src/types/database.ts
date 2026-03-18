@@ -116,3 +116,130 @@ export interface AuditLog {
   new_data: Record<string, unknown> | null;
   created_at: string;
 }
+
+// -- Accounting (P2) --------------------------------------------------------
+
+export type AccountType =
+  | "activo"
+  | "pasivo"
+  | "patrimonio"
+  | "ingreso"
+  | "gasto";
+
+export type AccountNature = "debito" | "credito";
+
+export interface Account {
+  id: string;
+  tenant_id: string;
+  code: string;
+  name: string;
+  account_type: AccountType;
+  nature: AccountNature;
+  parent_id: string | null;
+  level: number;
+  is_detail: boolean;
+  is_active: boolean;
+  is_system: boolean;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type TransactionType =
+  | "quota_payment"
+  | "extraordinary_payment"
+  | "supplier_payment"
+  | "utility_payment"
+  | "payroll"
+  | "reserve_fund_contribution"
+  | "late_interest"
+  | "common_area_rental"
+  | "bank_fee"
+  | "depreciation"
+  | "insurance"
+  | "maintenance"
+  | "security"
+  | "cleaning"
+  | "legal"
+  | "admin_expense"
+  | "other_income"
+  | "other_expense"
+  | "adjustment";
+
+export type JournalEntryStatus = "draft" | "confirmed";
+
+export interface Transaction {
+  id: string;
+  tenant_id: string;
+  type: TransactionType;
+  amount: number;
+  date: string;
+  description: string;
+  unit_id: string | null;
+  journal_entry_id: string | null;
+  metadata: Record<string, unknown>;
+  narratives: TransactionNarratives | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransactionNarratives {
+  summary: string;
+  detail: string;
+  accounting: string;
+}
+
+export interface JournalEntry {
+  id: string;
+  tenant_id: string;
+  entry_number: string;
+  date: string;
+  description: string;
+  status: JournalEntryStatus;
+  transaction_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JournalEntryLine {
+  id: string;
+  journal_entry_id: string;
+  account_id: string;
+  debit: number;
+  credit: number;
+  description: string | null;
+  created_at: string;
+}
+
+export type NarrativeLevel = "summary" | "detail" | "accounting";
+
+export interface NarrativeTemplate {
+  id: string;
+  tenant_id: string | null;
+  operation_type: TransactionType;
+  level: NarrativeLevel;
+  template: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NlsDictionaryEntry {
+  id: string;
+  accounting_term: string;
+  simple_translation: string;
+  example: string | null;
+  category: string;
+  created_at: string;
+}
+
+export interface AccountBalance {
+  account_id: string;
+  account_code: string;
+  account_name: string;
+  account_type: AccountType;
+  period: string;
+  debit_total: number;
+  credit_total: number;
+  balance: number;
+  tenant_id: string;
+}
