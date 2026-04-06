@@ -101,8 +101,6 @@ export default function BudgetDetailPage({
   // -- Fetch budget + items --------------------------------------------------
 
   const fetchBudget = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     const supabase = createClient();
 
     const [budgetRes, itemsRes] = await Promise.all([
@@ -114,18 +112,27 @@ export default function BudgetDetailPage({
         .order("sort_order"),
     ]);
 
-    if (budgetRes.error) {
-      setError(budgetRes.error.message);
-    } else {
-      setBudget(budgetRes.data as Budget);
-    }
-
-    setItems((itemsRes.data ?? []) as BudgetItem[]);
-    setLoading(false);
+    return {
+      budget: budgetRes.error ? null : (budgetRes.data as Budget),
+      items: (itemsRes.data ?? []) as BudgetItem[],
+      error: budgetRes.error?.message ?? null,
+    };
   }, [id]);
 
   useEffect(() => {
-    fetchBudget();
+    let cancelled = false;
+
+    void fetchBudget().then((result) => {
+      if (cancelled) return;
+      setBudget(result.budget);
+      setItems(result.items);
+      setError(result.error);
+      setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [fetchBudget]);
 
   // -- Fetch execution -------------------------------------------------------
@@ -276,7 +283,7 @@ export default function BudgetDetailPage({
             <p className="mt-0.5 font-mono text-xl font-semibold tabular-nums tracking-tight">
               {formatCOP(budget.total)}
             </p>
-            <div className="absolute -right-2 -top-2 h-14 w-14 rounded-full bg-foreground/[0.03]" />
+            <div className="absolute -right-2 -top-2 h-14 w-14 rounded-full bg-foreground/3" />
           </CardContent>
         </Card>
         <Card className="anim-kpi group transition-all duration-300 hover:shadow-md hover:ring-foreground/20">
@@ -530,7 +537,7 @@ export default function BudgetDetailPage({
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-4">
-                    <div className="h-[280px]">
+                    <div className="h-70">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                           data={chartData}
@@ -568,8 +575,8 @@ export default function BudgetDetailPage({
                               background: "hsl(var(--popover))",
                               color: "hsl(var(--popover-foreground))",
                             }}
-                            formatter={(value: number | undefined) =>
-                              value !== undefined ? formatCOP(value) : "-"
+                            formatter={(value) =>
+                              typeof value === "number" ? formatCOP(value) : "-"
                             }
                           />
                           <Legend
@@ -632,9 +639,9 @@ export default function BudgetDetailPage({
                             key={item.itemId}
                             className={
                               item.semaphore === "red"
-                                ? "bg-red-500/[0.04]"
+                                ? "bg-red-500/4"
                                 : item.semaphore === "yellow"
-                                  ? "bg-amber-500/[0.03]"
+                                  ? "bg-amber-500/3"
                                   : ""
                             }
                           >
