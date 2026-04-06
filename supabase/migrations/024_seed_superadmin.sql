@@ -1,8 +1,8 @@
 -- 024_seed_superadmin.sql
 -- Replaces handle_new_user to support a dev super_admin account.
--- When registering with 'admin@kontabi.dev', the user is linked
+-- When tenant_name is exactly '__PILOT__', the user is linked
 -- to the pilot tenant as super_admin instead of creating a new tenant.
--- All other registrations work as before.
+-- This works with any valid email address.
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -14,23 +14,23 @@ DECLARE
   v_pilot_tenant_id UUID := '00000000-0000-0000-0000-000000000001';
 BEGIN
   v_full_name := COALESCE(NULLIF(NEW.raw_user_meta_data->>'full_name', ''), NEW.email, 'Usuario');
+  v_tenant_name := COALESCE(NULLIF(NEW.raw_user_meta_data->>'tenant_name', ''), '');
 
-  -- Dev super_admin: link to pilot tenant
-  IF NEW.email = 'admin@kontabi.dev' THEN
-    -- Check pilot tenant exists
+  -- Dev super_admin: use tenant_name '__PILOT__' to link to pilot tenant
+  IF v_tenant_name = '__PILOT__' THEN
     IF EXISTS (SELECT 1 FROM public.tenants WHERE id = v_pilot_tenant_id) THEN
       v_tenant_id := v_pilot_tenant_id;
       v_role := 'super_admin';
-      v_full_name := COALESCE(NULLIF(NEW.raw_user_meta_data->>'full_name', ''), 'Administrador Kontabi');
     ELSE
-      -- Pilot tenant missing, fall through to normal flow
       v_tenant_id := NULL;
     END IF;
   END IF;
 
   -- Normal flow: create a new tenant
   IF v_tenant_id IS NULL THEN
-    v_tenant_name := COALESCE(NULLIF(NEW.raw_user_meta_data->>'tenant_name', ''), 'Mi Conjunto');
+    IF v_tenant_name = '' OR v_tenant_name = '__PILOT__' THEN
+      v_tenant_name := 'Mi Conjunto';
+    END IF;
     v_role := 'admin';
 
     INSERT INTO public.tenants (name, nit, address, stratum)
@@ -46,4 +46,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION public.handle_new_user IS 'Auto-creates tenant and user on signup. Dev account admin@kontabi.dev links to pilot tenant as super_admin.';
+COMMENT ON FUNCTION public.handle_new_user IS 'Auto-creates tenant and user on signup. Use tenant_name __PILOT__ to link to pilot tenant as super_admin.';
