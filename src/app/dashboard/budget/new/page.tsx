@@ -77,9 +77,9 @@ const DEFAULT_ITEMS: Array<{
 // -- Schema ------------------------------------------------------------------
 
 const budgetSchema = z.object({
-  year: z.coerce.number().min(2020).max(2099),
+  year: z.coerce.number().min(2020).max(2099).pipe(z.number()),
   name: z.string().min(1, "El nombre es requerido"),
-  reserveFundPct: z.coerce.number().min(0).max(100),
+  reserveFundPct: z.coerce.number().min(0).max(100).pipe(z.number()),
   notes: z.string().optional(),
 });
 
