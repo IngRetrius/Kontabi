@@ -343,8 +343,15 @@ export default function SetupPage() {
   // -- Step 3: Save bank + finish --------------------------------------------
 
   const saveStep3 = async () => {
-    if (!bankName.trim() || !accountNumber.trim()) {
+    const normalizedBankName = bankName.trim();
+    const normalizedAccountNumber = accountNumber.trim();
+
+    if (!normalizedBankName || !normalizedAccountNumber) {
       setError("Nombre del banco y numero de cuenta son obligatorios");
+      return false;
+    }
+    if (!tenantId) {
+      setError("No se pudo identificar el conjunto para guardar la cuenta bancaria");
       return false;
     }
 
@@ -352,32 +359,77 @@ export default function SetupPage() {
     setError(null);
     const supabase = createClient();
 
-    const { error: bankErr } = await supabase
+    const { data: existing, error: existingErr } = await supabase
       .from("bank_accounts")
-      .insert({
-        tenant_id: tenantId,
-        bank_name: bankName.trim(),
-        account_number: accountNumber.trim(),
-        account_type: accountType,
-        is_default: true,
-        is_active: true,
-      });
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("bank_name", normalizedBankName)
+      .eq("account_number", normalizedAccountNumber)
+      .maybeSingle();
+
+    if (existingErr) {
+      setSaving(false);
+      setError(existingErr.message);
+      return false;
+    }
+
+    // Keep a single principal account.
+    await supabase
+      .from("bank_accounts")
+      .update({ is_default: false })
+      .eq("tenant_id", tenantId)
+      .eq("is_default", true);
+
+    let bankErr: { message: string } | null = null;
+
+    if (existing) {
+      const { error: updateErr } = await supabase
+        .from("bank_accounts")
+        .update({
+          account_type: accountType,
+          is_default: true,
+          is_active: true,
+        })
+        .eq("id", existing.id);
+      bankErr = updateErr;
+    } else {
+      const { error: insertErr } = await supabase
+        .from("bank_accounts")
+        .insert({
+          tenant_id: tenantId,
+          bank_name: normalizedBankName,
+          account_number: normalizedAccountNumber,
+          account_type: accountType,
+          is_default: true,
+          is_active: true,
+        });
+      bankErr = insertErr;
+    }
 
     if (bankErr) {
       setSaving(false);
-      setError(bankErr.message);
+      setError(
+        bankErr.message.includes("bank_accounts_tenant_id_bank_name_account_number_key")
+          ? "Esta cuenta bancaria ya existe para el conjunto."
+          : bankErr.message
+      );
       return false;
     }
 
     // Mark onboarding complete
-    const { error: finishErr } = await supabase
+    const { data: finishedTenant, error: finishErr } = await supabase
       .from("tenants")
       .update({ onboarding_completed_at: new Date().toISOString() })
-      .eq("id", tenantId);
+      .eq("id", tenantId)
+      .select("id, onboarding_completed_at")
+      .single();
 
     setSaving(false);
-    if (finishErr) {
-      setError(finishErr.message);
+    if (finishErr || !finishedTenant?.onboarding_completed_at) {
+      setError(
+        finishErr?.message ??
+          "No se pudo finalizar la configuracion. Verifica permisos del tenant e intenta de nuevo."
+      );
       return false;
     }
     return true;
@@ -422,7 +474,10 @@ export default function SetupPage() {
       setStep(3);
     } else if (step === 3) {
       const ok = await saveStep3();
-      if (ok) router.push("/dashboard/overview");
+      if (ok) {
+        router.replace("/dashboard/overview");
+        router.refresh();
+      }
     }
   };
 

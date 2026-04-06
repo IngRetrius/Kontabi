@@ -66,6 +66,13 @@ const ACCOUNT_TYPES: { value: BankAccountType; label: string }[] = [
   { value: "ahorros", label: "Ahorros" },
 ];
 
+function mapBankAccountError(message: string): string {
+  if (message.includes("bank_accounts_tenant_id_bank_name_account_number_key")) {
+    return "Esta cuenta bancaria ya existe para el conjunto.";
+  }
+  return message;
+}
+
 // -- Page --------------------------------------------------------------------
 
 export default function BanksSettingsPage() {
@@ -89,9 +96,6 @@ export default function BanksSettingsPage() {
   // -- Fetch -----------------------------------------------------------------
 
   const fetchAccounts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
     const supabase = createClient();
     const { data, error: err } = await supabase
       .from("bank_accounts")
@@ -99,64 +103,128 @@ export default function BanksSettingsPage() {
       .eq("is_active", true)
       .order("is_default", { ascending: false });
 
-    if (err) {
-      setError(err.message);
-    } else {
-      setAccounts((data ?? []) as BankAccount[]);
-    }
-
     // Fetch reconciliation settings
     const { data: settings } = await supabase
       .from("tenant_settings")
       .select("key, value")
       .in("key", ["reconciliation_date_tolerance", "reconciliation_score_threshold"]);
 
-    for (const s of settings ?? []) {
+    return {
+      accounts: (data ?? []) as BankAccount[],
+      settings: settings ?? [],
+      error: err?.message ?? null,
+    };
+  }, []);
+
+  const reloadAccounts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    const result = await fetchAccounts();
+
+    if (result.error) {
+      setError(result.error);
+    } else {
+      setAccounts(result.accounts);
+    }
+
+    for (const s of result.settings) {
       if (s.key === "reconciliation_date_tolerance") setDateTolerance(s.value);
       if (s.key === "reconciliation_score_threshold") setScoreThreshold(s.value);
     }
 
     setLoading(false);
-  }, []);
+  }, [fetchAccounts]);
 
   useEffect(() => {
-    fetchAccounts();
+    let cancelled = false;
+
+    void fetchAccounts().then((result) => {
+      if (cancelled) return;
+
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setAccounts(result.accounts);
+      }
+
+      for (const s of result.settings) {
+        if (s.key === "reconciliation_date_tolerance") setDateTolerance(s.value);
+        if (s.key === "reconciliation_score_threshold") setScoreThreshold(s.value);
+      }
+
+      setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [fetchAccounts]);
 
   // -- Add account -----------------------------------------------------------
 
   async function handleAddAccount() {
-    if (!bankName || !accountNumber) return;
+    const normalizedBankName = bankName.trim();
+    const normalizedAccountNumber = accountNumber.trim();
+    if (!normalizedBankName || !normalizedAccountNumber) return;
 
     setSubmitting(true);
     setError(null);
 
     const supabase = createClient();
 
+    const { data: existing, error: existingErr } = await supabase
+      .from("bank_accounts")
+      .select("id")
+      .eq("bank_name", normalizedBankName)
+      .eq("account_number", normalizedAccountNumber)
+      .maybeSingle();
+
+    if (existingErr) {
+      setError(mapBankAccountError(existingErr.message));
+      setSubmitting(false);
+      return;
+    }
+
     // If setting as default, unset other defaults first
-    if (isDefault) {
+    if (isDefault || accounts.length === 0) {
       await supabase
         .from("bank_accounts")
         .update({ is_default: false })
         .eq("is_default", true);
     }
 
-    const { error: err } = await supabase.from("bank_accounts").insert({
-      bank_name: bankName,
-      account_number: accountNumber,
-      account_type: accountType,
-      is_default: isDefault || accounts.length === 0,
-    });
+    let err: { message: string } | null = null;
+
+    if (existing) {
+      const { error: updateErr } = await supabase
+        .from("bank_accounts")
+        .update({
+          account_type: accountType,
+          is_default: isDefault || accounts.length === 0,
+          is_active: true,
+        })
+        .eq("id", existing.id);
+      err = updateErr;
+    } else {
+      const { error: insertErr } = await supabase.from("bank_accounts").insert({
+        bank_name: normalizedBankName,
+        account_number: normalizedAccountNumber,
+        account_type: accountType,
+        is_default: isDefault || accounts.length === 0,
+      });
+      err = insertErr;
+    }
 
     if (err) {
-      setError(err.message);
+      setError(mapBankAccountError(err.message));
     } else {
       setDialogOpen(false);
       setBankName("");
       setAccountNumber("");
       setAccountType("corriente");
       setIsDefault(false);
-      fetchAccounts();
+      await reloadAccounts();
     }
     setSubmitting(false);
   }
@@ -169,7 +237,7 @@ export default function BanksSettingsPage() {
       .from("bank_accounts")
       .update({ is_active: false })
       .eq("id", id);
-    fetchAccounts();
+    await reloadAccounts();
   }
 
   // -- Set default -----------------------------------------------------------
@@ -184,7 +252,7 @@ export default function BanksSettingsPage() {
       .from("bank_accounts")
       .update({ is_default: true })
       .eq("id", id);
-    fetchAccounts();
+    await reloadAccounts();
   }
 
   // -- Save settings ---------------------------------------------------------
