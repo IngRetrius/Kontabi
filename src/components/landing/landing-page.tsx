@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -17,6 +17,8 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
+import { DashboardShowcaseCarousel } from "@/components/landing/dashboard-showcase-carousel";
+import { FeaturesScreenshotCarousel } from "@/components/landing/features-screenshot-carousel";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -63,24 +65,6 @@ const FEATURES = [
   },
 ];
 
-const SIDEBAR_ITEMS = [
-  "Resumen",
-  "Transacciones",
-  "Presupuesto",
-  "Cartera",
-  "Conciliacion",
-  "Reportes",
-];
-
-const CHART_BARS = [40, 65, 45, 80, 55, 90, 70, 85, 60, 95, 75, 88];
-
-const MOCK_TRANSACTIONS = [
-  { label: "Cuota Apto 301", amount: "+$850,000", positive: true },
-  { label: "Mantenimiento ascensor", amount: "-$320,000", positive: false },
-  { label: "Cuota Apto 502", amount: "+$850,000", positive: true },
-  { label: "Servicios publicos", amount: "-$180,000", positive: false },
-];
-
 /* ------------------------------------------------------------------ */
 /*  Grid background (reusable SVG)                                     */
 /* ------------------------------------------------------------------ */
@@ -125,6 +109,55 @@ function GridBackground({
 export default function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const reduceMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (reduceMotionQuery.matches) return;
+
+    let rafId = 0;
+    let lenisInstance: import("lenis").default | null = null;
+    let isMounted = true;
+
+    const setupSmoothScroll = async () => {
+      const { default: Lenis } = await import("lenis");
+      if (!isMounted) return;
+
+      lenisInstance = new Lenis({
+        duration: 1.8,
+        lerp: 0.07,
+        smoothWheel: true,
+        syncTouch: false,
+        wheelMultiplier: 0.7,
+        touchMultiplier: 1,
+        anchors: true,
+      });
+
+      lenisInstance.on("scroll", ScrollTrigger.update);
+
+      const raf = (time: number) => {
+        lenisInstance?.raf(time);
+        rafId = window.requestAnimationFrame(raf);
+      };
+
+      rafId = window.requestAnimationFrame(raf);
+      ScrollTrigger.refresh();
+    };
+
+    void setupSmoothScroll();
+
+    return () => {
+      isMounted = false;
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+      }
+      if (lenisInstance) {
+        lenisInstance.off("scroll", ScrollTrigger.update);
+        lenisInstance.destroy();
+      }
+    };
+  }, []);
 
   /* ---- GSAP Animations ---- */
   useGSAP(
@@ -267,6 +300,49 @@ export default function LandingPage() {
               },
             }
           );
+
+          if (isDesktop) {
+            const slowScrollSections = [
+              { selector: ".hero-slow-scroll", distance: 26 },
+              { selector: ".trust-slow-scroll", distance: 16 },
+              { selector: ".features-slow-scroll", distance: 24 },
+              { selector: ".nls-slow-scroll", distance: 22 },
+              { selector: ".cta-slow-scroll", distance: 18 },
+              { selector: ".footer-slow-scroll", distance: 14 },
+            ];
+
+            slowScrollSections.forEach(({ selector, distance }) => {
+              gsap.fromTo(
+                selector,
+                { y: distance },
+                {
+                  y: -distance,
+                  ease: "none",
+                  scrollTrigger: {
+                    trigger: selector,
+                    start: "top bottom",
+                    end: "bottom top",
+                    scrub: 1.6,
+                  },
+                }
+              );
+            });
+
+            gsap.fromTo(
+              ".screenshots-slow-scroll",
+              { y: 48 },
+              {
+                y: -48,
+                ease: "none",
+                scrollTrigger: {
+                  trigger: ".features-section",
+                  start: "top bottom",
+                  end: "bottom top",
+                  scrub: 1.4,
+                },
+              }
+            );
+          }
 
           // NLS section
           const nlsTl = gsap.timeline({
@@ -436,8 +512,8 @@ export default function LandingPage() {
         <div className="accent-line absolute -right-32 top-1/4 h-px w-[600px] rotate-[35deg] bg-gradient-to-r from-transparent via-foreground/15 to-transparent origin-left" />
         <div className="accent-line absolute -left-16 bottom-1/3 h-px w-[400px] rotate-[35deg] bg-gradient-to-r from-transparent via-foreground/8 to-transparent origin-left" />
 
-        <div className="relative max-w-7xl mx-auto px-6 py-20 lg:py-0 w-full">
-          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+        <div className="hero-slow-scroll relative max-w-7xl mx-auto px-6 py-20 lg:py-0 w-full">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-14">
             {/* Text content */}
             <div className="flex-1 text-center lg:text-left max-w-xl lg:max-w-none">
               <div className="hero-badge inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-foreground mb-8">
@@ -454,7 +530,7 @@ export default function LandingPage() {
               </h1>
 
               <p className="hero-desc mt-6 text-base sm:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed">
-                Kontabi traduce cada operacion contable a espanol simple.
+                Kontabi traduce cada operacion contable a español simple.
                 Gestiona presupuestos, cartera y cumplimiento de la Ley 675
                 sin necesidad de ser contador.
               </p>
@@ -497,150 +573,8 @@ export default function LandingPage() {
             </div>
 
             {/* Dashboard mockup */}
-            <div className="hero-mockup flex-1 w-full max-w-xl lg:max-w-[580px]">
-              <div className="relative rounded-2xl border border-border bg-background shadow-[0_25px_60px_-12px_rgba(0,0,0,0.15)] overflow-hidden">
-                {/* Window chrome */}
-                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-muted/50">
-                  <div className="flex gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-foreground/20" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-foreground/15" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-foreground/10" />
-                  </div>
-                  <div className="flex-1 flex justify-center">
-                    <div className="text-[10px] text-muted-foreground bg-muted rounded px-3 py-0.5">
-                      kontabi.app/dashboard
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex">
-                  {/* Sidebar */}
-                  <div className="hidden sm:block w-40 border-r border-border bg-muted/30 py-4 px-3">
-                    <div className="font-display text-sm text-foreground px-2 mb-4">
-                      Kontabi
-                    </div>
-                    <div className="space-y-0.5">
-                      {SIDEBAR_ITEMS.map((item, i) => (
-                        <div
-                          key={item}
-                          className={`text-[11px] px-2 py-1.5 rounded-md ${
-                            i === 0
-                              ? "bg-foreground text-background font-medium"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Main content */}
-                  <div className="flex-1 p-4 sm:p-5">
-                    <div className="flex justify-between items-center mb-4">
-                      <div>
-                        <div className="text-xs font-semibold text-foreground">
-                          Resumen Financiero
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          Marzo 2026
-                        </div>
-                      </div>
-                      <div className="text-[10px] bg-muted text-foreground px-2 py-0.5 rounded-full font-medium">
-                        Al dia
-                      </div>
-                    </div>
-
-                    {/* Stat cards */}
-                    <div className="grid grid-cols-3 gap-2 mb-4">
-                      {[
-                        {
-                          label: "Ingresos",
-                          value: "$24.5M",
-                          sub: "+12%",
-                        },
-                        {
-                          label: "Gastos",
-                          value: "$18.2M",
-                          sub: "-3%",
-                        },
-                        {
-                          label: "Balance",
-                          value: "$6.3M",
-                          sub: "Saludable",
-                        },
-                      ].map((stat) => (
-                        <div
-                          key={stat.label}
-                          className="bg-muted/60 rounded-lg p-2.5"
-                        >
-                          <div className="text-[9px] text-muted-foreground mb-0.5">
-                            {stat.label}
-                          </div>
-                          <div className="text-sm font-bold text-foreground">
-                            {stat.value}
-                          </div>
-                          <div className="text-[9px] text-muted-foreground">
-                            {stat.sub}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Chart */}
-                    <div className="bg-muted/40 rounded-lg p-3 mb-4">
-                      <div className="text-[10px] text-muted-foreground mb-2">
-                        Ingresos vs Gastos (12 meses)
-                      </div>
-                      <div className="flex items-end gap-[3px] h-14">
-                        {CHART_BARS.map((h, i) => (
-                          <div
-                            key={i}
-                            className="flex-1 flex flex-col gap-[2px] justify-end"
-                          >
-                            <div
-                              className="w-full rounded-sm bg-foreground/60"
-                              style={{ height: `${h * 0.55}%` }}
-                            />
-                            <div
-                              className="w-full rounded-sm bg-foreground/15"
-                              style={{ height: `${h * 0.35}%` }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Transactions */}
-                    <div>
-                      <div className="text-[10px] text-muted-foreground mb-2">
-                        Ultimos movimientos
-                      </div>
-                      <div className="space-y-1.5">
-                        {MOCK_TRANSACTIONS.map((tx, i) => (
-                          <div
-                            key={i}
-                            className="flex justify-between items-center"
-                          >
-                            <span className="text-[10px] text-muted-foreground">
-                              {tx.label}
-                            </span>
-                            <span
-                              className={`text-[10px] font-medium ${
-                                tx.positive
-                                  ? "text-foreground"
-                                  : "text-muted-foreground"
-                              }`}
-                            >
-                              {tx.amount}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="hero-mockup flex-1 w-full max-w-4xl lg:max-w-250">
+              <DashboardShowcaseCarousel />
             </div>
           </div>
         </div>
@@ -648,7 +582,7 @@ export default function LandingPage() {
 
       {/* ===== TRUST BAR ===== */}
       <section className="trust-section py-8 border-y border-border bg-background">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
+        <div className="trust-slow-scroll max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
           <span className="trust-item text-sm text-muted-foreground">
             Disenado para cumplir con
           </span>
@@ -672,7 +606,7 @@ export default function LandingPage() {
         id="funcionalidades"
         className="features-section py-20 sm:py-28 bg-muted/40"
       >
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="features-slow-scroll max-w-7xl mx-auto px-6">
           <div className="features-heading text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-display text-foreground tracking-tight">
               Todo lo que necesitas para administrar con confianza
@@ -704,6 +638,10 @@ export default function LandingPage() {
               );
             })}
           </div>
+
+          <div className="screenshots-slow-scroll mt-14 hidden xl:block will-change-transform">
+            <FeaturesScreenshotCarousel />
+          </div>
         </div>
       </section>
 
@@ -712,7 +650,7 @@ export default function LandingPage() {
         id="ventajas"
         className="nls-section py-20 sm:py-28 bg-muted/40"
       >
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="nls-slow-scroll max-w-7xl mx-auto px-6">
           <div className="nls-heading text-center max-w-2xl mx-auto mb-16">
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-1.5 text-xs font-medium text-foreground mb-4">
               Diferenciador clave
@@ -721,7 +659,7 @@ export default function LandingPage() {
               Contabilidad en tu idioma, no en jeroglificos
             </h2>
             <p className="mt-4 text-muted-foreground text-base sm:text-lg">
-              El motor NLS traduce cada asiento contable a espanol claro. Tus
+              El motor NLS traduce cada asiento contable a español claro. Tus
               copropietarios entenderan cada peso.
             </p>
           </div>
@@ -807,7 +745,7 @@ Total              $1,500,000   $1,500,000`}
         <div className="absolute -right-32 top-1/3 h-px w-[600px] rotate-[35deg] bg-gradient-to-r from-transparent via-background/15 to-transparent" />
         <div className="absolute -left-16 bottom-1/4 h-px w-[400px] rotate-[35deg] bg-gradient-to-r from-transparent via-background/8 to-transparent" />
 
-        <div className="cta-inner relative max-w-2xl mx-auto text-center px-6">
+        <div className="cta-slow-scroll cta-inner relative max-w-2xl mx-auto text-center px-6">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display text-background tracking-tight leading-tight">
             Empieza a administrar con claridad
           </h2>
@@ -827,7 +765,7 @@ Total              $1,500,000   $1,500,000`}
 
       {/* ===== FOOTER ===== */}
       <footer className="bg-foreground border-t border-background/10 py-12">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="footer-slow-scroll max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
             <div className="flex items-center gap-2.5 justify-center md:justify-start">
               <div className="flex h-7 w-7 items-center justify-center rounded-md border border-background/20 bg-background/10 text-xs font-bold text-background">
