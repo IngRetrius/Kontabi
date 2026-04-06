@@ -77,9 +77,15 @@ const DEFAULT_ITEMS: Array<{
 // -- Schema ------------------------------------------------------------------
 
 const budgetSchema = z.object({
-  year: z.coerce.number().min(2020).max(2099).pipe(z.number()),
+  year: z.preprocess(
+    (val) => (typeof val === "string" ? parseInt(val, 10) : val),
+    z.number().min(2020).max(2099)
+  ),
   name: z.string().min(1, "El nombre es requerido"),
-  reserveFundPct: z.coerce.number().min(0).max(100).pipe(z.number()),
+  reserveFundPct: z.preprocess(
+    (val) => (typeof val === "string" ? parseFloat(val) : val),
+    z.number().min(0).max(100)
+  ),
   notes: z.string().optional(),
 });
 
@@ -395,19 +401,19 @@ export default function NewBudgetPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-[220px] pl-4 text-[11px] font-medium uppercase tracking-wider">
+                    <TableHead className="w-55 pl-4 text-[11px] font-medium uppercase tracking-wider">
                       Rubro
                     </TableHead>
-                    <TableHead className="w-[140px] text-[11px] font-medium uppercase tracking-wider">
+                    <TableHead className="w-35 text-[11px] font-medium uppercase tracking-wider">
                       Categoria
                     </TableHead>
-                    <TableHead className="w-[140px] text-[11px] font-medium uppercase tracking-wider">
+                    <TableHead className="w-35 text-[11px] font-medium uppercase tracking-wider">
                       Cuenta
                     </TableHead>
-                    <TableHead className="w-[130px] text-right text-[11px] font-medium uppercase tracking-wider">
+                    <TableHead className="w-32.5 text-right text-[11px] font-medium uppercase tracking-wider">
                       Mensual
                     </TableHead>
-                    <TableHead className="w-[130px] text-right text-[11px] font-medium uppercase tracking-wider">
+                    <TableHead className="w-32.5 text-right text-[11px] font-medium uppercase tracking-wider">
                       Anual
                     </TableHead>
                     <TableHead className="w-10 pr-4" />
@@ -543,7 +549,7 @@ export default function NewBudgetPage() {
               </p>
             </CardContent>
           </Card>
-          <Card className="anim-kpi border-primary/20 bg-primary/[0.03]">
+          <Card className="anim-kpi border-primary/20 bg-primary/3">
             <CardContent className="p-3">
               <p className="text-[11px] font-medium uppercase tracking-wider text-primary/70">
                 Presupuesto total
