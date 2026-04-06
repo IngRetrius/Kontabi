@@ -10,6 +10,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { GoogleAuthButton } from "@/components/shared/google-auth-button";
 import {
   Mail,
   LockKeyhole,
@@ -257,6 +259,23 @@ export default function RegisterPage() {
               <span>{serverError}</span>
             </div>
           )}
+
+          <div className="form-field mb-4 space-y-4">
+            <GoogleAuthButton
+              label="Registrarme con Google"
+              onError={setServerError}
+              disabled={isLoading}
+              nextPath="/dashboard/overview"
+              className="font-medium"
+            />
+
+            <div className="relative">
+              <Separator className="bg-border/80" />
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                o llena el formulario
+              </span>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="form-field space-y-2">
