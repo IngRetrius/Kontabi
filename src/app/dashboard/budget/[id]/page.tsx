@@ -568,7 +568,9 @@ export default function BudgetDetailPage({
                               background: "hsl(var(--popover))",
                               color: "hsl(var(--popover-foreground))",
                             }}
-                            formatter={(value: number) => formatCOP(value)}
+                            formatter={(value: number | undefined) =>
+                              value !== undefined ? formatCOP(value) : "-"
+                            }
                           />
                           <Legend
                             wrapperStyle={{ fontSize: 11 }}
