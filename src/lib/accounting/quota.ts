@@ -45,7 +45,8 @@ async function getTenantId(): Promise<string | null> {
  *
  * Formula:
  *   monthly_expense = budget.total / 12
- *   unit_quota = monthly_expense * unit.coefficient
+ *   unit_share = unit.coefficient / SUM(all unit coefficients)
+ *   unit_quota = monthly_expense * unit_share
  *
  * Some items can be distributed equally (not by coefficient). This is
  * controlled by the `equalItems` parameter which lists budget item IDs
@@ -109,11 +110,25 @@ export async function calculateQuotaDistribution(
     return { distribution: null, error: "No hay unidades activas" };
   }
 
+  const totalCoefficient = activeUnits.reduce(
+    (sum, unit) => sum + Number(unit.coefficient),
+    0
+  );
+
+  if (totalCoefficient <= 0) {
+    return {
+      distribution: null,
+      error:
+        "La suma de coeficientes debe ser mayor a 0. Configura coeficientes en Unidades.",
+    };
+  }
+
   const equalPerUnit = activeUnits.length > 0 ? equalMonthly / activeUnits.length : 0;
 
   // Calculate quotas
   const quotas: UnitQuota[] = activeUnits.map((unit) => {
-    const byCoefficient = coefficientMonthly * unit.coefficient;
+    const coefficientShare = Number(unit.coefficient) / totalCoefficient;
+    const byCoefficient = coefficientMonthly * coefficientShare;
     const monthlyQuota = Math.round(byCoefficient + equalPerUnit);
 
     return {
@@ -207,6 +222,20 @@ export async function generateMonthlyInvoices(
     return { created: 0, skipped: 0, error: "No hay unidades activas" };
   }
 
+  const totalCoefficient = units.reduce(
+    (sum, unit) => sum + Number(unit.coefficient),
+    0
+  );
+
+  if (totalCoefficient <= 0) {
+    return {
+      created: 0,
+      skipped: 0,
+      error:
+        "La suma de coeficientes debe ser mayor a 0. Configura coeficientes en Unidades.",
+    };
+  }
+
   // Check existing invoices
   const { data: existing } = await supabase
     .from("invoices")
@@ -241,7 +270,8 @@ export async function generateMonthlyInvoices(
       continue;
     }
 
-    const quotaAmount = Math.round(monthlyExpense * unit.coefficient);
+    const coefficientShare = Number(unit.coefficient) / totalCoefficient;
+    const quotaAmount = Math.round(monthlyExpense * coefficientShare);
     const extraordinaryAmount = extraByUnit.get(unit.id) ?? 0;
 
     invoicesToInsert.push({
