@@ -22,11 +22,11 @@ import { AlertCircle, CheckCircle2, Save } from "lucide-react";
 // -- Schema -----------------------------------------------------------------
 
 const notificationsSchema = z.object({
-  invoice_advance_days: z.coerce
+  invoice_advance_days: z
     .number()
     .min(0, "No puede ser negativo")
     .max(30, "Maximo 30 dias"),
-  overdue_reminder_days: z.coerce
+  overdue_reminder_days: z
     .number()
     .min(1, "Minimo 1 dia")
     .max(30, "Maximo 30 dias"),
@@ -141,7 +141,7 @@ export default function NotificationsSettingsPage() {
                 type="number"
                 min={0}
                 max={30}
-                {...register("invoice_advance_days")}
+                {...register("invoice_advance_days", { valueAsNumber: true })}
                 aria-invalid={!!errors.invoice_advance_days}
               />
               <p className="text-[11px] text-muted-foreground">
@@ -162,7 +162,7 @@ export default function NotificationsSettingsPage() {
                 type="number"
                 min={1}
                 max={30}
-                {...register("overdue_reminder_days")}
+                {...register("overdue_reminder_days", { valueAsNumber: true })}
                 aria-invalid={!!errors.overdue_reminder_days}
               />
               <p className="text-[11px] text-muted-foreground">

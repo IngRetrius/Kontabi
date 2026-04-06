@@ -30,10 +30,10 @@ import { usePageTransition } from "@/hooks/use-page-transition";
 // -- Schema -----------------------------------------------------------------
 
 const financialSchema = z.object({
-  billing_cutoff_day: z.coerce.number().min(1, "Minimo dia 1").max(28, "Maximo dia 28"),
-  payment_due_day: z.coerce.number().min(1, "Minimo dia 1").max(28, "Maximo dia 28"),
-  late_fee_rate: z.coerce.number().min(0, "No puede ser negativo").max(100, "Maximo 100%"),
-  grace_period_days: z.coerce.number().min(0, "No puede ser negativo").max(30, "Maximo 30 dias"),
+  billing_cutoff_day: z.number().min(1, "Minimo dia 1").max(28, "Maximo dia 28"),
+  payment_due_day: z.number().min(1, "Minimo dia 1").max(28, "Maximo dia 28"),
+  late_fee_rate: z.number().min(0, "No puede ser negativo").max(100, "Maximo 100%"),
+  grace_period_days: z.number().min(0, "No puede ser negativo").max(30, "Maximo 30 dias"),
   late_fee_type: z.enum(["simple", "compound"]),
 });
 
@@ -167,7 +167,7 @@ export default function FinancialSettingsPage() {
                 type="number"
                 min={1}
                 max={28}
-                {...register("billing_cutoff_day")}
+                {...register("billing_cutoff_day", { valueAsNumber: true })}
                 aria-invalid={!!errors.billing_cutoff_day}
               />
               <p className="text-[11px] text-muted-foreground">
@@ -186,7 +186,7 @@ export default function FinancialSettingsPage() {
                 type="number"
                 min={1}
                 max={28}
-                {...register("payment_due_day")}
+                {...register("payment_due_day", { valueAsNumber: true })}
                 aria-invalid={!!errors.payment_due_day}
               />
               <p className="text-[11px] text-muted-foreground">
@@ -220,7 +220,7 @@ export default function FinancialSettingsPage() {
                 step="0.01"
                 min="0"
                 max="100"
-                {...register("late_fee_rate")}
+                {...register("late_fee_rate", { valueAsNumber: true })}
                 aria-invalid={!!errors.late_fee_rate}
               />
               <p className="text-[11px] text-muted-foreground">
@@ -239,7 +239,7 @@ export default function FinancialSettingsPage() {
                 type="number"
                 min={0}
                 max={30}
-                {...register("grace_period_days")}
+                {...register("grace_period_days", { valueAsNumber: true })}
                 aria-invalid={!!errors.grace_period_days}
               />
               <p className="text-[11px] text-muted-foreground">
@@ -258,7 +258,7 @@ export default function FinancialSettingsPage() {
                 onValueChange={(val) =>
                   setValue(
                     "late_fee_type",
-                    val as "simple" | "compound",
+                    (val ?? "simple") as "simple" | "compound",
                     { shouldValidate: true, shouldDirty: true }
                   )
                 }

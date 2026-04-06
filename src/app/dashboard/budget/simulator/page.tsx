@@ -178,7 +178,7 @@ export default function BudgetSimulatorPage() {
             <Select
               value={selectedBudgetId}
               onValueChange={(v) => {
-                setSelectedBudgetId(v);
+                setSelectedBudgetId(v ?? "");
                 setResult(null);
                 setItemOverrides({});
               }}
@@ -248,7 +248,7 @@ export default function BudgetSimulatorPage() {
                 <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums tracking-tight">
                   {formatCOP(result.newTotal)}
                 </p>
-                <div className="absolute -right-2 -top-2 h-14 w-14 rounded-full bg-sky-500/[0.06]" />
+                <div className="absolute -right-2 -top-2 h-14 w-14 rounded-full bg-sky-500/6" />
               </CardContent>
             </Card>
             <Card className="anim-kpi group transition-all duration-300 hover:shadow-md hover:ring-foreground/20">
@@ -417,3 +417,4 @@ export default function BudgetSimulatorPage() {
     </div>
   );
 }
+

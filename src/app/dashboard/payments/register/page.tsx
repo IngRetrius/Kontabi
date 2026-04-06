@@ -339,7 +339,7 @@ export default function RegisterPaymentPage() {
                 </Label>
                 <Select
                   value={selectedUnitId}
-                  onValueChange={(v) => setSelectedUnitId(v)}
+                  onValueChange={(v) => setSelectedUnitId(v ?? "")}
                 >
                   <SelectTrigger className="h-8 text-[13px]">
                     <SelectValue placeholder="Seleccionar unidad..." />
@@ -451,7 +451,7 @@ export default function RegisterPaymentPage() {
                               key={inv.id}
                               className={
                                 inv.selected
-                                  ? "bg-primary/[0.03]"
+                                  ? "bg-primary/3"
                                   : undefined
                               }
                             >
@@ -730,3 +730,4 @@ export default function RegisterPaymentPage() {
     </div>
   );
 }
+

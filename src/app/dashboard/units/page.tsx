@@ -101,9 +101,9 @@ const UNIT_TYPE_BADGE_VARIANT: Record<
 const unitSchema = z.object({
   building_id: z.string().min(1, "Selecciona una torre"),
   number: z.string().min(1, "El numero es requerido"),
-  floor: z.coerce.number().min(0, "El piso debe ser 0 o mayor"),
+  floor: z.number().min(0, "El piso debe ser 0 o mayor"),
   unit_type: z.enum(["apartment", "commercial", "parking", "storage"]),
-  area_m2: z.coerce.number().positive("El area debe ser mayor a 0"),
+  area_m2: z.number().positive("El area debe ser mayor a 0"),
 });
 
 type UnitFormData = z.infer<typeof unitSchema>;
@@ -459,7 +459,7 @@ export default function UnitsPage() {
           value={filterBuilding}
           onValueChange={(val) => setFilterBuilding(val as string)}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-45">
             <SelectValue placeholder="Todas las torres" />
           </SelectTrigger>
           <SelectContent>
@@ -476,7 +476,7 @@ export default function UnitsPage() {
           value={filterType}
           onValueChange={(val) => setFilterType(val as string)}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-45">
             <SelectValue placeholder="Todos los tipos" />
           </SelectTrigger>
           <SelectContent>
@@ -686,7 +686,7 @@ export default function UnitsPage() {
                     id="unit-floor"
                     type="number"
                     min={0}
-                    {...register("floor")}
+                    {...register("floor", { valueAsNumber: true })}
                     aria-invalid={!!errors.floor}
                   />
                   {errors.floor && (
@@ -739,7 +739,7 @@ export default function UnitsPage() {
                   step="0.01"
                   min="0.01"
                   placeholder="45.50"
-                  {...register("area_m2")}
+                  {...register("area_m2", { valueAsNumber: true })}
                   aria-invalid={!!errors.area_m2}
                 />
                 {errors.area_m2 && (
@@ -802,3 +802,4 @@ export default function UnitsPage() {
     </div>
   );
 }
+

@@ -300,7 +300,7 @@ export default function ExtraordinaryFeesPage() {
             <p className="mt-0.5 font-mono text-2xl font-semibold tabular-nums tracking-tight">
               {fees.length}
             </p>
-            <div className="absolute -right-2 -top-2 h-14 w-14 rounded-full bg-foreground/[0.03]" />
+            <div className="absolute -right-2 -top-2 h-14 w-14 rounded-full bg-foreground/3" />
           </CardContent>
         </Card>
         <Card className="anim-kpi group transition-all duration-300 hover:shadow-md hover:ring-foreground/20">
@@ -575,7 +575,7 @@ export default function ExtraordinaryFeesPage() {
               <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
                 Acta de asamblea (recomendado)
               </Label>
-              <Select value={newActId} onValueChange={setNewActId}>
+              <Select value={newActId} onValueChange={(v) => setNewActId(v ?? "")}>
                 <SelectTrigger className="h-8 text-[13px]">
                   <SelectValue placeholder="Sin acta vinculada" />
                 </SelectTrigger>
@@ -632,3 +632,4 @@ export default function ExtraordinaryFeesPage() {
     </div>
   );
 }
+

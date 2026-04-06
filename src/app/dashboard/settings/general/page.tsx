@@ -35,7 +35,7 @@ const generalSchema = z.object({
   address: z.string().min(1, "La direccion es requerida"),
   city: z.string().min(1, "La ciudad es requerida"),
   department: z.string().min(1, "El departamento es requerido"),
-  stratum: z.coerce.number().min(1, "Minimo estrato 1").max(6, "Maximo estrato 6"),
+  stratum: z.number().min(1, "Minimo estrato 1").max(6, "Maximo estrato 6"),
   phone: z.string(),
   email: z.union([z.string().email("Email invalido"), z.literal("")]),
 });
@@ -261,7 +261,7 @@ export default function GeneralSettingsPage() {
               <Select
                 value={String(watchedStratum ?? "")}
                 onValueChange={(val) =>
-                  setValue("stratum", Number(val), { shouldValidate: true, shouldDirty: true })
+                  setValue("stratum", Number(val ?? watchedStratum ?? 1), { shouldValidate: true, shouldDirty: true })
                 }
               >
                 <SelectTrigger className="w-full">

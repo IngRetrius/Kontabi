@@ -36,15 +36,15 @@ import {
 const commonAreaSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   description: z.string().optional(),
-  capacity: z.coerce
-    .number()
-    .int("Debe ser un numero entero")
-    .min(1, "Debe ser al menos 1")
-    .optional()
-    .or(z.literal("")),
+  capacity: z
+    .union([
+      z.number().int("Debe ser un numero entero").min(1, "Debe ser al menos 1"),
+      z.literal(""),
+    ])
+    .optional(),
   schedule: z.string().optional(),
-  booking_cost: z.coerce.number().min(0, "No puede ser negativo"),
-  deposit: z.coerce.number().min(0, "No puede ser negativo"),
+  booking_cost: z.number().min(0, "No puede ser negativo"),
+  deposit: z.number().min(0, "No puede ser negativo"),
   is_bookable: z.boolean(),
 });
 
@@ -86,7 +86,7 @@ export function CommonAreasDialog({
     reset({
       name: "",
       description: "",
-      capacity: "" as unknown as number,
+      capacity: "",
       schedule: "",
       booking_cost: 0,
       deposit: 0,
@@ -101,7 +101,7 @@ export function CommonAreasDialog({
     reset({
       name: area.name,
       description: area.description ?? "",
-      capacity: area.capacity ?? ("" as unknown as number),
+      capacity: area.capacity ?? "",
       schedule: area.schedule ?? "",
       booking_cost: area.booking_cost,
       deposit: area.deposit,
@@ -126,10 +126,7 @@ export function CommonAreasDialog({
     const payload = {
       name: data.name,
       description: data.description || null,
-      capacity:
-        data.capacity && data.capacity !== ("" as unknown)
-          ? Number(data.capacity)
-          : null,
+      capacity: data.capacity !== "" && data.capacity !== undefined ? Number(data.capacity) : null,
       schedule: data.schedule || null,
       booking_cost: data.booking_cost,
       deposit: data.deposit,
@@ -380,7 +377,9 @@ export function CommonAreasDialog({
                   type="number"
                   min={1}
                   placeholder="50"
-                  {...register("capacity")}
+                  {...register("capacity", {
+                    setValueAs: (v) => (v === "" ? "" : Number(v)),
+                  })}
                   aria-invalid={!!errors.capacity}
                 />
                 <p className="text-[11px] text-muted-foreground">Personas</p>
@@ -409,7 +408,7 @@ export function CommonAreasDialog({
                   type="number"
                   min={0}
                   step={1000}
-                  {...register("booking_cost")}
+                  {...register("booking_cost", { valueAsNumber: true })}
                   aria-invalid={!!errors.booking_cost}
                 />
                 <p className="text-[11px] text-muted-foreground">
@@ -429,7 +428,7 @@ export function CommonAreasDialog({
                   type="number"
                   min={0}
                   step={1000}
-                  {...register("deposit")}
+                  {...register("deposit", { valueAsNumber: true })}
                   aria-invalid={!!errors.deposit}
                 />
                 <p className="text-[11px] text-muted-foreground">

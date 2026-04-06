@@ -76,6 +76,10 @@ export async function generatePazYSalvo(
 
   if (!unit) return { data: null, error: "Unidad no encontrada" };
 
+  const building = Array.isArray(unit.building)
+    ? unit.building[0]
+    : (unit.building as { name: string } | null);
+
   // Get current owner
   const { data: owner } = await supabase
     .from("owners")
@@ -116,7 +120,7 @@ export async function generatePazYSalvo(
     data: {
       type: "paz_y_salvo",
       unitNumber: unit.number,
-      tower: (unit.building as { name: string } | null)?.name ?? null,
+      tower: building?.name ?? null,
       ownerName: owner?.full_name ?? "N/A",
       ownerDocument: owner
         ? `${owner.document_type.toUpperCase()} ${owner.document_number}`

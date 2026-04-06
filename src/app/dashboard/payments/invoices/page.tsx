@@ -45,8 +45,6 @@ import {
   RefreshCw,
   AlertCircle,
   CheckCircle,
-  Clock,
-  AlertTriangle,
   Loader2,
 } from "lucide-react";
 
@@ -123,8 +121,6 @@ export default function InvoicesPage() {
   // -- Fetch invoices --------------------------------------------------------
 
   const fetchInvoices = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     const supabase = createClient();
 
     let query = supabase
@@ -142,17 +138,37 @@ export default function InvoicesPage() {
     }
 
     const { data, error: err } = await query;
+    return { data, err };
+  }, [filterPeriod, filterStatus]);
 
+  const loadInvoices = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const { data, err } = await fetchInvoices();
     if (err) {
       setError(err.message);
     } else {
       setInvoices((data ?? []) as InvoiceWithUnit[]);
     }
     setLoading(false);
-  }, [filterPeriod, filterStatus]);
+  }, [fetchInvoices]);
 
   useEffect(() => {
-    fetchInvoices();
+    let cancelled = false;
+
+    void fetchInvoices().then(({ data, err }) => {
+      if (cancelled) return;
+      if (err) {
+        setError(err.message);
+      } else {
+        setInvoices((data ?? []) as InvoiceWithUnit[]);
+      }
+      setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [fetchInvoices]);
 
   // -- Generate invoices -----------------------------------------------------
@@ -175,7 +191,7 @@ export default function InvoicesPage() {
 
     setGenResult({ created, skipped });
     setGenerating(false);
-    await fetchInvoices();
+    await loadInvoices();
   };
 
   // -- Periods for filter (derived from data) --------------------------------
@@ -214,7 +230,7 @@ export default function InvoicesPage() {
             variant="ghost"
             size="sm"
             className="h-8 px-2.5 text-xs text-muted-foreground"
-            onClick={fetchInvoices}
+            onClick={loadInvoices}
             disabled={loading}
           >
             <RefreshCw
@@ -246,7 +262,7 @@ export default function InvoicesPage() {
             <p className="mt-0.5 font-mono text-2xl font-semibold tabular-nums tracking-tight">
               {totalInvoices}
             </p>
-            <div className="absolute -right-2 -top-2 h-14 w-14 rounded-full bg-foreground/[0.03]" />
+            <div className="absolute -right-2 -top-2 h-14 w-14 rounded-full bg-foreground/3" />
           </CardContent>
         </Card>
         <Card className="anim-kpi group transition-all duration-300 hover:shadow-md hover:ring-foreground/20">
@@ -322,8 +338,11 @@ export default function InvoicesPage() {
               </CardDescription>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Select value={filterPeriod} onValueChange={setFilterPeriod}>
-                <SelectTrigger className="h-7 w-[130px] text-[11px]">
+              <Select value={filterPeriod} onValueChange={(v) => {
+                setLoading(true);
+                setFilterPeriod(v ?? "");
+              }}>
+                <SelectTrigger className="h-7 w-32.5 text-[11px]">
                   <SelectValue placeholder="Periodo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -337,8 +356,11 @@ export default function InvoicesPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="h-7 w-[120px] text-[11px]">
+              <Select value={filterStatus} onValueChange={(v) => {
+                setLoading(true);
+                setFilterStatus(v ?? "all");
+              }}>
+                <SelectTrigger className="h-7 w-30 text-[11px]">
                   <SelectValue placeholder="Estado" />
                 </SelectTrigger>
                 <SelectContent>
@@ -424,7 +446,7 @@ export default function InvoicesPage() {
                       <TableRow
                         key={inv.id}
                         className={
-                          isOverdue ? "bg-red-500/[0.03]" : ""
+                          isOverdue ? "bg-red-500/3" : ""
                         }
                       >
                         <TableCell className="pl-4 font-mono text-[13px] font-semibold tabular-nums">
@@ -560,3 +582,4 @@ export default function InvoicesPage() {
     </div>
   );
 }
+

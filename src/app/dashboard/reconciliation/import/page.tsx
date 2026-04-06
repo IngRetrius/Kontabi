@@ -280,7 +280,7 @@ export default function ReconciliationImportPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Cuenta bancaria</Label>
-                  <Select value={bankAccountId} onValueChange={setBankAccountId}>
+                  <Select value={bankAccountId} onValueChange={(v) => setBankAccountId(v ?? "")}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Seleccionar cuenta" />
                     </SelectTrigger>
@@ -365,7 +365,7 @@ export default function ReconciliationImportPage() {
                       <TableCell className="pl-4 font-mono text-[12px] tabular-nums text-muted-foreground">
                         {line.date}
                       </TableCell>
-                      <TableCell className="max-w-[300px] truncate text-[13px]">
+                      <TableCell className="max-w-75 truncate text-[13px]">
                         {line.description}
                       </TableCell>
                       <TableCell>
@@ -420,3 +420,4 @@ export default function ReconciliationImportPage() {
     </div>
   );
 }
+

@@ -120,10 +120,10 @@ type OwnerFormData = z.infer<typeof ownerSchema>;
 const editUnitSchema = z.object({
   building_id: z.string().min(1, "Selecciona una torre"),
   number: z.string().min(1, "El numero es requerido"),
-  floor: z.coerce.number().min(0, "El piso debe ser 0 o mayor"),
+  floor: z.number().min(0, "El piso debe ser 0 o mayor"),
   unit_type: z.enum(["apartment", "commercial", "parking", "storage"]),
-  area_m2: z.coerce.number().positive("El area debe ser mayor a 0"),
-  coefficient: z.coerce
+  area_m2: z.number().positive("El area debe ser mayor a 0"),
+  coefficient: z
     .number()
     .min(0, "El coeficiente debe ser 0 o mayor")
     .max(100, "El coeficiente no puede superar 100"),
@@ -890,7 +890,7 @@ export default function UnitDetailPage() {
                   id="edit-floor"
                   type="number"
                   min={0}
-                  {...editForm.register("floor")}
+                  {...editForm.register("floor", { valueAsNumber: true })}
                   aria-invalid={!!editForm.formState.errors.floor}
                 />
                 {editForm.formState.errors.floor && (
@@ -936,7 +936,7 @@ export default function UnitDetailPage() {
                   type="number"
                   step="0.01"
                   min="0.01"
-                  {...editForm.register("area_m2")}
+                  {...editForm.register("area_m2", { valueAsNumber: true })}
                   aria-invalid={!!editForm.formState.errors.area_m2}
                 />
                 {editForm.formState.errors.area_m2 && (
@@ -953,7 +953,7 @@ export default function UnitDetailPage() {
                   step="0.000001"
                   min="0"
                   max="100"
-                  {...editForm.register("coefficient")}
+                  {...editForm.register("coefficient", { valueAsNumber: true })}
                   aria-invalid={!!editForm.formState.errors.coefficient}
                 />
                 {editForm.formState.errors.coefficient && (

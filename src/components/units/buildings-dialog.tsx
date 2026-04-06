@@ -20,7 +20,7 @@ import { Plus, Pencil, Trash2, Building2, AlertCircle } from "lucide-react";
 
 const buildingSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
-  floors: z.coerce.number().min(1, "Debe tener al menos 1 piso"),
+  floors: z.number().min(1, "Debe tener al menos 1 piso"),
 });
 
 type BuildingFormData = z.infer<typeof buildingSchema>;
@@ -225,7 +225,7 @@ export function BuildingsDialog({
                 id="building-floors"
                 type="number"
                 min={1}
-                {...register("floors")}
+                {...register("floors", { valueAsNumber: true })}
                 aria-invalid={!!errors.floors}
               />
               {errors.floors && (

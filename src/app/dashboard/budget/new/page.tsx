@@ -77,15 +77,9 @@ const DEFAULT_ITEMS: Array<{
 // -- Schema ------------------------------------------------------------------
 
 const budgetSchema = z.object({
-  year: z.preprocess(
-    (val) => (typeof val === "string" ? parseInt(val, 10) : val),
-    z.number().min(2020).max(2099)
-  ),
+  year: z.number().int().min(2020).max(2099),
   name: z.string().min(1, "El nombre es requerido"),
-  reserveFundPct: z.preprocess(
-    (val) => (typeof val === "string" ? parseFloat(val) : val),
-    z.number().min(0).max(100)
-  ),
+  reserveFundPct: z.number().min(0).max(100),
   notes: z.string().optional(),
 });
 
@@ -177,10 +171,10 @@ export default function NewBudgetPage() {
   const removeItem = (id: string) =>
     setItems((prev) => prev.filter((i) => i.tempId !== id));
 
-  const updateItem = (
+  const updateItem = <K extends keyof ItemRow>(
     id: string,
-    field: keyof ItemRow,
-    value: string | number
+    field: K,
+    value: ItemRow[K]
   ) =>
     setItems((prev) =>
       prev.map((i) => (i.tempId === id ? { ...i, [field]: value } : i))
@@ -321,7 +315,7 @@ export default function NewBudgetPage() {
                 id="year"
                 type="number"
                 className="h-8 font-mono text-[13px]"
-                {...register("year")}
+                {...register("year", { valueAsNumber: true })}
               />
               {errors.year && (
                 <p className="text-[11px] text-destructive">
@@ -353,7 +347,7 @@ export default function NewBudgetPage() {
                 type="number"
                 step="0.01"
                 className="h-8 font-mono text-[13px]"
-                {...register("reserveFundPct")}
+                {...register("reserveFundPct", { valueAsNumber: true })}
               />
             </div>
             <div className="space-y-1.5 sm:col-span-4">
@@ -436,7 +430,11 @@ export default function NewBudgetPage() {
                         <Select
                           value={item.category}
                           onValueChange={(v) =>
-                            updateItem(item.tempId, "category", v)
+                            updateItem(
+                              item.tempId,
+                              "category",
+                              (v ?? "other") as BudgetItemCategory
+                            )
                           }
                         >
                           <SelectTrigger className="h-7 text-[11px]">
@@ -461,7 +459,7 @@ export default function NewBudgetPage() {
                         <Select
                           value={item.accountCode}
                           onValueChange={(v) =>
-                            updateItem(item.tempId, "accountCode", v)
+                            updateItem(item.tempId, "accountCode", v ?? "")
                           }
                         >
                           <SelectTrigger className="h-7 font-mono text-[11px]">

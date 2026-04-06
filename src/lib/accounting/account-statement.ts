@@ -87,14 +87,28 @@ export async function getUnitStatement(
 
   // 3. Get all payment applications for this unit's invoices
   const invoiceIds = (invoices ?? []).map((i) => i.id);
-  let applications: { invoice_id: string; amount_applied: number; created_at: string; payment: { payment_date: string; reference: string | null } }[] = [];
+  let applications: {
+    invoice_id: string;
+    amount_applied: number;
+    created_at: string;
+    payment:
+      | { payment_date: string; reference: string | null }
+      | Array<{ payment_date: string; reference: string | null }>;
+  }[] = [];
 
   if (invoiceIds.length > 0) {
     const { data: apps } = await supabase
       .from("payment_applications")
       .select("invoice_id, amount_applied, created_at, payment:payments!inner(payment_date, reference)")
       .in("invoice_id", invoiceIds);
-    applications = (apps ?? []) as typeof applications;
+    applications = (apps ?? []) as {
+      invoice_id: string;
+      amount_applied: number;
+      created_at: string;
+      payment:
+        | { payment_date: string; reference: string | null }
+        | Array<{ payment_date: string; reference: string | null }>;
+    }[];
   }
 
   // 4. Build statement lines
@@ -119,7 +133,10 @@ export async function getUnitStatement(
     // Payment lines for this invoice
     const invApps = applications.filter((a) => a.invoice_id === inv.id);
     for (const app of invApps) {
-      const paymentInfo = app.payment as { payment_date: string; reference: string | null };
+      const paymentInfo = Array.isArray(app.payment)
+        ? app.payment[0]
+        : app.payment;
+      if (!paymentInfo) continue;
       runningBalance -= app.amount_applied;
       totalPaid += app.amount_applied;
       lines.push({
@@ -140,7 +157,11 @@ export async function getUnitStatement(
   return {
     unitId: unit.id,
     unitNumber: unit.number,
-    tower: (unit.building as { name: string } | null)?.name ?? null,
+    tower:
+      (Array.isArray(unit.building)
+        ? unit.building[0]
+        : (unit.building as { name: string } | null)
+      )?.name ?? null,
     ownerName,
     coefficient: unit.coefficient,
     lines,
@@ -178,7 +199,9 @@ export async function getGlobalAging(): Promise<{
     const outstanding = inv.total - inv.paid_amount;
     if (outstanding <= 0) continue;
     const daysOverdue = Math.max(0, Math.floor((today.getTime() - new Date(inv.due_date).getTime()) / 86400000));
-    const unitInfo = inv.unit as unknown as { number: string };
+    const unitInfoRaw = inv.unit as { number: string } | Array<{ number: string }> | null;
+    const unitInfo = Array.isArray(unitInfoRaw) ? unitInfoRaw[0] : unitInfoRaw;
+    if (!unitInfo) continue;
     const existing = unitMap.get(inv.unit_id) ?? { unitNumber: unitInfo.number, balance: 0, maxDays: 0 };
     existing.balance += outstanding;
     existing.maxDays = Math.max(existing.maxDays, daysOverdue);

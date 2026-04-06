@@ -153,17 +153,36 @@ export default function TAccountsPage() {
         debit: number;
         credit: number;
         description: string | null;
-        journal_entry: {
-          id: string;
-          entry_number: string;
-          date: string;
-          status: string;
-          description: string;
-        };
+        journal_entry:
+          | {
+              id: string;
+              entry_number: string;
+              date: string;
+              status: string;
+              description: string;
+            }
+          | Array<{
+              id: string;
+              entry_number: string;
+              date: string;
+              status: string;
+              description: string;
+            }>;
       }>;
 
+      const getJournalEntry = (line: (typeof lineData)[number]) =>
+        Array.isArray(line.journal_entry)
+          ? line.journal_entry[0]
+          : line.journal_entry;
+
       // Fetch counterpart info for each entry
-      const entryIds = [...new Set(lineData.map((l) => l.journal_entry.id))];
+      const entryIds = [
+        ...new Set(
+          lineData
+            .map((l) => getJournalEntry(l)?.id)
+            .filter((id): id is string => Boolean(id))
+        ),
+      ];
       let counterparts: Record<
         string,
         { code: string; name: string }
@@ -179,10 +198,16 @@ export default function TAccountsPage() {
         if (counterpartLines) {
           for (const cl of counterpartLines as Array<{
             journal_entry_id: string;
-            account: { code: string; name: string } | null;
+            account:
+              | { code: string; name: string }
+              | Array<{ code: string; name: string }>
+              | null;
           }>) {
-            if (cl.account) {
-              counterparts[cl.journal_entry_id] = cl.account;
+            const account = Array.isArray(cl.account)
+              ? cl.account[0]
+              : cl.account;
+            if (account) {
+              counterparts[cl.journal_entry_id] = account;
             }
           }
         }
@@ -195,7 +220,8 @@ export default function TAccountsPage() {
       let creditTotal = 0;
 
       for (const line of lineData) {
-        const je = line.journal_entry;
+        const je = getJournalEntry(line);
+        if (!je) continue;
         const cp = counterparts[je.id];
 
         const movement: TAccountMovement = {
@@ -404,7 +430,7 @@ export default function TAccountsPage() {
               <Label className="text-xs text-muted-foreground">
                 Nivel de detalle
               </Label>
-              <div className="flex items-center gap-0.5 rounded-lg bg-muted p-[3px]">
+              <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.75">
                 {(["simple", "detail", "accounting"] as TAccountViewLevel[]).map(
                   (level) => (
                     <button
@@ -490,3 +516,4 @@ export default function TAccountsPage() {
     </div>
   );
 }
+
