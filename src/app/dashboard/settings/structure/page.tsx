@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UnitType, CommonArea } from "@/types/database";
@@ -28,6 +28,7 @@ import {
   Clock,
   DollarSign,
 } from "lucide-react";
+import { usePageTransition } from "@/hooks/use-page-transition";
 
 // -- Constants --------------------------------------------------------------
 
@@ -48,6 +49,7 @@ const UNIT_TYPE_ICONS: Record<UnitType, typeof Home> = {
 // -- Component --------------------------------------------------------------
 
 export default function StructureSettingsPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -94,6 +96,8 @@ export default function StructureSettingsPage() {
     fetchData();
   }, [fetchData]);
 
+  usePageTransition(containerRef, { ready: !loading });
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -113,11 +117,11 @@ export default function StructureSettingsPage() {
   const activeAreas = commonAreas.filter((a) => a.is_active);
 
   return (
-    <div className="space-y-6">
+    <div ref={containerRef} className="space-y-6">
       {/* Overview stats */}
-      <Card>
+      <Card className="anim-card">
         <CardHeader>
-          <CardTitle className="text-sm">Resumen de estructura</CardTitle>
+          <CardTitle className="font-display text-sm">Resumen de estructura</CardTitle>
           <CardDescription>
             Vista general de la estructura fisica del conjunto
           </CardDescription>
@@ -149,9 +153,9 @@ export default function StructureSettingsPage() {
       </Card>
 
       {/* Units by type */}
-      <Card>
+      <Card className="anim-card">
         <CardHeader>
-          <CardTitle className="text-sm">Unidades por tipo</CardTitle>
+          <CardTitle className="font-display text-sm">Unidades por tipo</CardTitle>
           <CardDescription>
             Desglose de unidades segun su clasificacion
           </CardDescription>
@@ -189,11 +193,11 @@ export default function StructureSettingsPage() {
       </Card>
 
       {/* Common areas */}
-      <Card>
+      <Card className="anim-card">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-sm">Zonas comunes</CardTitle>
+              <CardTitle className="font-display text-sm">Zonas comunes</CardTitle>
               <CardDescription>
                 Espacios compartidos del conjunto residencial
               </CardDescription>
@@ -283,9 +287,9 @@ export default function StructureSettingsPage() {
       </Card>
 
       {/* Actions */}
-      <Card>
+      <Card className="anim-card">
         <CardHeader>
-          <CardTitle className="text-sm">Gestionar estructura</CardTitle>
+          <CardTitle className="font-display text-sm">Gestionar estructura</CardTitle>
           <CardDescription>
             Administra torres, unidades y zonas comunes desde la seccion
             correspondiente
@@ -329,7 +333,7 @@ function StatBlock({
   value: number;
 }) {
   return (
-    <div className="space-y-1 rounded-lg bg-muted/40 px-4 py-3">
+    <div className="anim-kpi space-y-1 rounded-lg bg-muted/40 px-4 py-3">
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         {icon}
         {label}

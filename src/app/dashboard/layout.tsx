@@ -1,35 +1,28 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { Breadcrumbs, getPageTitle } from "@/components/layout/breadcrumbs";
+import { UserMenu } from "@/components/layout/user-menu";
 import {
   PanelLeftClose,
   PanelLeftOpen,
   Menu,
-  LogOut,
-  User,
   Building2,
 } from "lucide-react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
 
 export default function DashboardLayout({
   children,
@@ -39,29 +32,85 @@ export default function DashboardLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
+  const shellRef = useRef<HTMLDivElement>(null);
 
   const pageTitle = getPageTitle(pathname);
 
-  const handleLogout = useCallback(async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-  }, [router]);
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia();
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+        tl.fromTo(
+          ".shell-brand",
+          { x: -12, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.5 }
+        )
+          .fromTo(
+            ".shell-nav-section",
+            { x: -16, opacity: 0 },
+            { x: 0, opacity: 1, stagger: 0.04, duration: 0.4 },
+            0.08
+          )
+          .fromTo(
+            ".shell-collapse",
+            { opacity: 0 },
+            { opacity: 1, duration: 0.35 },
+            0.3
+          )
+          .fromTo(
+            ".shell-header",
+            { y: -8, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.4 },
+            0.05
+          )
+          .fromTo(
+            ".shell-breadcrumbs",
+            { y: -6, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.35 },
+            0.12
+          )
+          .fromTo(
+            ".shell-main",
+            { opacity: 0 },
+            { opacity: 1, duration: 0.5 },
+            0.15
+          );
+      });
+    },
+    { scope: shellRef }
+  );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div ref={shellRef} className="flex h-screen overflow-hidden bg-background">
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "hidden flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-in-out lg:flex",
+          "hidden relative flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-in-out lg:flex overflow-hidden",
           collapsed ? "w-[52px]" : "w-[220px]"
         )}
       >
+        {/* Architectural grid background */}
+        <svg
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          style={{ opacity: 0.03 }}
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <pattern id="sidebar-grid" width="60" height="60" patternUnits="userSpaceOnUse">
+              <path d="M 60 0 L 0 0 0 60" fill="none" stroke="currentColor" strokeWidth="0.8" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#sidebar-grid)" />
+        </svg>
+        {/* Diagonal accent */}
+        <div className="pointer-events-none absolute -right-8 top-10 h-px w-40 rotate-[35deg] bg-gradient-to-r from-transparent via-sidebar-foreground/10 to-transparent" />
+
         {/* Brand */}
         <div
           className={cn(
-            "flex h-12 shrink-0 items-center border-b border-sidebar-border px-3",
+            "shell-brand relative z-10 flex h-12 shrink-0 items-center border-b border-sidebar-border px-3",
             collapsed && "justify-center px-0"
           )}
         >
@@ -73,7 +122,7 @@ export default function DashboardLayout({
               K
             </div>
             {!collapsed && (
-              <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
+              <span className="font-display text-[15px] tracking-tight text-sidebar-foreground">
                 Kontabi
               </span>
             )}
@@ -81,10 +130,12 @@ export default function DashboardLayout({
         </div>
 
         {/* Navigation */}
-        <SidebarNav collapsed={collapsed} />
+        <div className="relative z-10 flex-1 min-h-0">
+          <SidebarNav collapsed={collapsed} />
+        </div>
 
         {/* Collapse toggle */}
-        <div className="shrink-0 border-t border-sidebar-border p-2">
+        <div className="shell-collapse relative z-10 shrink-0 border-t border-sidebar-border p-2">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -116,7 +167,7 @@ export default function DashboardLayout({
               <div className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-xs font-bold text-background">
                 K
               </div>
-              <span className="text-sm font-semibold tracking-tight">
+              <span className="font-display text-[15px] tracking-tight">
                 Kontabi
               </span>
             </Link>
@@ -130,7 +181,7 @@ export default function DashboardLayout({
       {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Navbar */}
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-4 lg:px-6">
+        <header className="shell-header flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-4 lg:px-6">
           <div className="flex items-center gap-3">
             {/* Mobile hamburger */}
             <Button
@@ -142,60 +193,30 @@ export default function DashboardLayout({
               <Menu className="h-4 w-4" />
             </Button>
 
-            <h1 className="text-sm font-semibold tracking-tight">
+            <h1 className="font-display text-base tracking-tight">
               {pageTitle}
             </h1>
           </div>
 
           <div className="flex items-center gap-2">
             {/* Tenant badge */}
-            <div className="mr-1 hidden items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground sm:flex">
+            <div className="mr-1 hidden items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground sm:flex">
               <Building2 className="h-3 w-3" />
               <span>Mi Conjunto</span>
             </div>
 
             {/* User menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <button className="flex items-center gap-2 rounded-md p-1 transition-colors hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-                }
-              >
-                <Avatar size="sm">
-                  <AvatarFallback className="text-[10px]">AD</AvatarFallback>
-                </Avatar>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                sideOffset={8}
-                className="w-48"
-              >
-                <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  Perfil
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Cerrar sesion
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <UserMenu />
           </div>
         </header>
 
         {/* Breadcrumbs */}
-        <div className="shrink-0 border-b border-border/50 bg-muted/30 px-4 py-1.5 lg:px-6">
+        <div className="shell-breadcrumbs shrink-0 border-b border-border/50 bg-muted/30 px-4 py-1.5 lg:px-6">
           <Breadcrumbs />
         </div>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto px-4 py-6 lg:px-6">
+        <main className="shell-main flex-1 overflow-y-auto bg-muted/20 px-4 py-6 lg:px-6">
           {children}
         </main>
       </div>

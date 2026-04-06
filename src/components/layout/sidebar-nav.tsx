@@ -32,6 +32,8 @@ import {
   FileBarChart,
   Settings,
   ShieldCheck,
+  Percent,
+  Lock,
   type LucideIcon,
 } from "lucide-react";
 
@@ -78,6 +80,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Cobros", icon: Receipt, path: "/dashboard/payments/invoices" },
       { label: "Registrar pago", icon: HandCoins, path: "/dashboard/payments/register" },
       { label: "Vencidos", icon: AlertTriangle, path: "/dashboard/payments/overdue" },
+      { label: "Mora", icon: Percent, path: "/dashboard/payments/late-interest" },
     ],
   },
   {
@@ -103,6 +106,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Reportes", icon: FileBarChart, path: "/dashboard/reports/center" },
       { label: "Configuracion", icon: Settings, path: "/dashboard/settings/general" },
       { label: "Auditoria", icon: ShieldCheck, path: "/dashboard/audit/log" },
+      { label: "Bloqueo periodos", icon: Lock, path: "/dashboard/audit/period-locks" },
     ],
   },
 ];
@@ -115,9 +119,9 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-2 py-4">
+    <nav className="h-full space-y-5 overflow-y-auto overflow-x-hidden px-2 py-4">
       {NAV_SECTIONS.map((section) => (
-        <div key={section.title}>
+        <div key={section.title} className="shell-nav-section">
           {!collapsed && (
             <span className="mb-1.5 block px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
               {section.title}

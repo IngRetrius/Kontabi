@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertCircle, CheckCircle2, Save } from "lucide-react";
+import { usePageTransition } from "@/hooks/use-page-transition";
 
 // -- Schema -----------------------------------------------------------------
 
@@ -49,6 +50,7 @@ const SETTING_KEYS: SettingKey[] = [
 // -- Component --------------------------------------------------------------
 
 export default function FinancialSettingsPage() {
+  const containerRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{
@@ -113,6 +115,8 @@ export default function FinancialSettingsPage() {
     setTimeout(() => setFeedback(null), 3000);
   }
 
+  usePageTransition(containerRef as React.RefObject<HTMLDivElement | null>, { ready: !loading });
+
   // -- Loading --------------------------------------------------------------
 
   if (loading) {
@@ -127,11 +131,11 @@ export default function FinancialSettingsPage() {
   // -- Render ---------------------------------------------------------------
 
   return (
-    <form onSubmit={handleSubmit(onSave)} className="space-y-6">
+    <form ref={containerRef} onSubmit={handleSubmit(onSave)} className="space-y-6">
       {/* Feedback */}
       {feedback && (
         <div
-          className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm ${
+          className={`anim-banner flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm ${
             feedback.type === "success"
               ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
               : "border-destructive/20 bg-destructive/5 text-destructive"
@@ -147,9 +151,9 @@ export default function FinancialSettingsPage() {
       )}
 
       {/* Billing Cycle */}
-      <Card>
+      <Card className="anim-card">
         <CardHeader>
-          <CardTitle className="text-sm">Ciclo de facturacion</CardTitle>
+          <CardTitle className="font-display text-sm">Ciclo de facturacion</CardTitle>
           <CardDescription>
             Define los dias de corte y vencimiento de las cuotas de administracion
           </CardDescription>
@@ -199,9 +203,9 @@ export default function FinancialSettingsPage() {
       </Card>
 
       {/* Late Fees */}
-      <Card>
+      <Card className="anim-card">
         <CardHeader>
-          <CardTitle className="text-sm">Intereses de mora</CardTitle>
+          <CardTitle className="font-display text-sm">Intereses de mora</CardTitle>
           <CardDescription>
             Configuracion de la tasa de interes y el periodo de gracia para pagos vencidos
           </CardDescription>

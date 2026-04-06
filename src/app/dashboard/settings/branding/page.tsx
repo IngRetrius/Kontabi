@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +19,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AlertCircle, CheckCircle2, Save } from "lucide-react";
+import { usePageTransition } from "@/hooks/use-page-transition";
 
 // -- Schema -----------------------------------------------------------------
 
@@ -39,6 +40,7 @@ const SETTING_KEYS: SettingKey[] = [
 // -- Component --------------------------------------------------------------
 
 export default function BrandingSettingsPage() {
+  const containerRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{
@@ -94,6 +96,8 @@ export default function BrandingSettingsPage() {
     setTimeout(() => setFeedback(null), 3000);
   }
 
+  usePageTransition(containerRef as React.RefObject<HTMLDivElement | null>, { ready: !loading });
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -104,10 +108,10 @@ export default function BrandingSettingsPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSave)} className="space-y-6">
+    <form ref={containerRef} onSubmit={handleSubmit(onSave)} className="space-y-6">
       {feedback && (
         <div
-          className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm ${
+          className={`anim-banner flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm ${
             feedback.type === "success"
               ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
               : "border-destructive/20 bg-destructive/5 text-destructive"
@@ -123,9 +127,9 @@ export default function BrandingSettingsPage() {
       )}
 
       {/* Reports */}
-      <Card>
+      <Card className="anim-card">
         <CardHeader>
-          <CardTitle className="text-sm">Reportes y documentos</CardTitle>
+          <CardTitle className="font-display text-sm">Reportes y documentos</CardTitle>
           <CardDescription>
             Personaliza la apariencia de los reportes PDF generados por el
             sistema
@@ -161,9 +165,9 @@ export default function BrandingSettingsPage() {
       </Card>
 
       {/* Colors */}
-      <Card>
+      <Card className="anim-card">
         <CardHeader>
-          <CardTitle className="text-sm">Color principal</CardTitle>
+          <CardTitle className="font-display text-sm">Color principal</CardTitle>
           <CardDescription>
             Color utilizado en reportes y documentos oficiales
           </CardDescription>

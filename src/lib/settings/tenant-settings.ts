@@ -12,6 +12,9 @@ const DEFAULTS: Record<SettingKey, string> = {
   report_header_text: "",
   primary_color: "#1a1a1a",
   logo_pdf_url: "",
+  period_lock_date: "",
+  reconciliation_date_tolerance: "3",
+  reconciliation_score_threshold: "40",
 };
 
 export function getDefault(key: SettingKey): string {

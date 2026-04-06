@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "@/lib/supabase/client";
+import { usePageTransition } from "@/hooks/use-page-transition";
 import type { Account, AccountType } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +92,7 @@ function buildTree(accounts: Account[]): AccountNode[] {
 // -- Component ---------------------------------------------------------------
 
 export default function AccountsSettingsPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -208,6 +210,8 @@ export default function AccountsSettingsPage() {
     return { total, detail, custom };
   }, [accounts]);
 
+  usePageTransition(containerRef, { ready: !loading });
+
   // -- Loading ---------------------------------------------------------------
 
   if (loading) {
@@ -263,7 +267,7 @@ export default function AccountsSettingsPage() {
   // -- Render ----------------------------------------------------------------
 
   return (
-    <div className="space-y-5">
+    <div ref={containerRef} className="space-y-5">
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-sm text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0" />
@@ -273,26 +277,26 @@ export default function AccountsSettingsPage() {
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="space-y-1 rounded-lg bg-muted/40 px-4 py-3">
+        <div className="anim-kpi space-y-1 rounded-lg bg-muted/40 px-4 py-3">
           <p className="text-xs text-muted-foreground">Total cuentas</p>
           <p className="text-xl font-semibold tabular-nums">{stats.total}</p>
         </div>
-        <div className="space-y-1 rounded-lg bg-muted/40 px-4 py-3">
+        <div className="anim-kpi space-y-1 rounded-lg bg-muted/40 px-4 py-3">
           <p className="text-xs text-muted-foreground">Cuentas de detalle</p>
           <p className="text-xl font-semibold tabular-nums">{stats.detail}</p>
         </div>
-        <div className="space-y-1 rounded-lg bg-muted/40 px-4 py-3">
+        <div className="anim-kpi space-y-1 rounded-lg bg-muted/40 px-4 py-3">
           <p className="text-xs text-muted-foreground">Subcuentas propias</p>
           <p className="text-xl font-semibold tabular-nums">{stats.custom}</p>
         </div>
       </div>
 
       {/* Toolbar */}
-      <Card>
+      <Card className="anim-card">
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-sm">
+              <CardTitle className="font-display text-sm">
                 Plan de cuentas NIIF Grupo 3
               </CardTitle>
               <CardDescription>

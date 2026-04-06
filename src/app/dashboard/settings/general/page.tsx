@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "@/lib/supabase/client";
+import { usePageTransition } from "@/hooks/use-page-transition";
 import type { Tenant } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,7 @@ type GeneralFormData = z.infer<typeof generalSchema>;
 // -- Component --------------------------------------------------------------
 
 export default function GeneralSettingsPage() {
+  const containerRef = useRef<HTMLFormElement>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -125,6 +127,8 @@ export default function GeneralSettingsPage() {
     setTimeout(() => setFeedback(null), 3000);
   }
 
+  usePageTransition(containerRef as React.RefObject<HTMLDivElement | null>, { ready: !loading });
+
   // -- Loading --------------------------------------------------------------
 
   if (loading) {
@@ -139,7 +143,7 @@ export default function GeneralSettingsPage() {
   // -- Render ---------------------------------------------------------------
 
   return (
-    <form onSubmit={handleSubmit(onSave)} className="space-y-6">
+    <form ref={containerRef} onSubmit={handleSubmit(onSave)} className="space-y-6">
       {/* Feedback */}
       {feedback && (
         <div
@@ -159,9 +163,9 @@ export default function GeneralSettingsPage() {
       )}
 
       {/* Identity */}
-      <Card>
+      <Card className="anim-card">
         <CardHeader>
-          <CardTitle className="text-sm">Identidad del conjunto</CardTitle>
+          <CardTitle className="font-display text-sm">Identidad del conjunto</CardTitle>
           <CardDescription>
             Nombre, NIT y datos de identificacion legal
           </CardDescription>
@@ -201,9 +205,9 @@ export default function GeneralSettingsPage() {
       </Card>
 
       {/* Location */}
-      <Card>
+      <Card className="anim-card">
         <CardHeader>
-          <CardTitle className="text-sm">Ubicacion</CardTitle>
+          <CardTitle className="font-display text-sm">Ubicacion</CardTitle>
           <CardDescription>
             Direccion y datos geograficos del conjunto
           </CardDescription>
@@ -282,9 +286,9 @@ export default function GeneralSettingsPage() {
       </Card>
 
       {/* Contact */}
-      <Card>
+      <Card className="anim-card">
         <CardHeader>
-          <CardTitle className="text-sm">Contacto</CardTitle>
+          <CardTitle className="font-display text-sm">Contacto</CardTitle>
           <CardDescription>
             Telefono y correo de la administracion
           </CardDescription>

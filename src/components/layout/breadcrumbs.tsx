@@ -22,6 +22,7 @@ const ROUTE_LABELS: Record<string, string> = {
   invoices: "Cobros",
   register: "Registrar pago",
   overdue: "Vencidos",
+  "late-interest": "Mora",
   compliance: "Cumplimiento",
   "reserve-fund": "Fondo reserva",
   extraordinary: "Cuotas extraordinarias",
@@ -33,7 +34,7 @@ const ROUTE_LABELS: Record<string, string> = {
   calendar: "Calendario",
   bookings: "Reservas",
   reports: "Reportes",
-  center: "Centro",
+  center: "Centro de reportes",
   assembly: "Asamblea",
   settings: "Configuracion",
   general: "General",
@@ -43,6 +44,8 @@ const ROUTE_LABELS: Record<string, string> = {
   notifications: "Notificaciones",
   banks: "Bancos",
   branding: "Marca",
+  setup: "Configuracion inicial",
+  profile: "Perfil",
   audit: "Auditoria",
   log: "Registro",
   "period-locks": "Periodos",
@@ -64,7 +67,7 @@ export function Breadcrumbs() {
   });
 
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm">
+    <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs">
       {crumbs.map((crumb, index) => (
         <span key={crumb.path} className="flex items-center gap-1">
           {index > 0 && (
