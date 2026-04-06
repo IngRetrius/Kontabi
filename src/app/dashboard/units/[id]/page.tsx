@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "@/lib/supabase/client";
+import { usePageTransition } from "@/hooks/use-page-transition";
 import { formatCoefficient, formatShortDate } from "@/lib/utils/format";
 import type { Building, UnitType, Owner } from "@/types/database";
 import { Button } from "@/components/ui/button";
@@ -143,6 +144,7 @@ function todayISO(): string {
 // -- Component --------------------------------------------------------------
 
 export default function UnitDetailPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const params = useParams();
   const router = useRouter();
   const unitId = params.id as string;
@@ -354,6 +356,8 @@ export default function UnitDetailPage() {
     setShowEditUnit(true);
   }
 
+  usePageTransition(containerRef, { ready: !loading });
+
   // -- Loading state --------------------------------------------------------
 
   if (loading) {
@@ -404,9 +408,9 @@ export default function UnitDetailPage() {
   const TypeIcon = UNIT_TYPE_ICONS[unit.unit_type];
 
   return (
-    <div className="space-y-6">
+    <div ref={containerRef} className="space-y-6">
       {/* ---- Header ---- */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="anim-header flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <Button
             variant="ghost"
@@ -458,9 +462,9 @@ export default function UnitDetailPage() {
       {/* ---- Info Cards ---- */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Unit Info */}
-        <Card>
+        <Card className="anim-card">
           <CardHeader>
-            <CardTitle className="text-sm">
+            <CardTitle className="font-display text-sm">
               Informacion de la unidad
             </CardTitle>
           </CardHeader>
@@ -510,14 +514,14 @@ export default function UnitDetailPage() {
 
         {/* Current Owner */}
         <Card
-          className={
+          className={`anim-card ${
             currentOwner
               ? "border-l-[3px] border-l-emerald-500 dark:border-l-emerald-600"
               : ""
-          }
+          }`}
         >
           <CardHeader>
-            <CardTitle className="text-sm">Propietario actual</CardTitle>
+            <CardTitle className="font-display text-sm">Propietario actual</CardTitle>
             {currentOwner && (
               <CardAction>
                 <Badge
@@ -602,9 +606,9 @@ export default function UnitDetailPage() {
 
       {/* ---- Owner History ---- */}
       {previousOwners.length > 0 && (
-        <Card>
+        <Card className="anim-table">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm">
+            <CardTitle className="flex items-center gap-2 font-display text-sm">
               <History className="h-4 w-4 text-muted-foreground" />
               Historial de propietarios
               <Badge variant="secondary" className="text-[10px]">

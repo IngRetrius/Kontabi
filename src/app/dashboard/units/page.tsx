@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { usePageTransition } from "@/hooks/use-page-transition";
 import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "@/lib/supabase/client";
 import { formatCoefficient } from "@/lib/utils/format";
 import type { Building, UnitType } from "@/types/database";
 import { BuildingsDialog } from "@/components/units/buildings-dialog";
+import { CoefficientEditor } from "@/components/units/coefficient-editor";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -47,6 +49,7 @@ import {
   Car,
   Package,
   AlertCircle,
+  Percent,
 } from "lucide-react";
 
 // -- Types for joined query results ----------------------------------------
@@ -101,10 +104,6 @@ const unitSchema = z.object({
   floor: z.coerce.number().min(0, "El piso debe ser 0 o mayor"),
   unit_type: z.enum(["apartment", "commercial", "parking", "storage"]),
   area_m2: z.coerce.number().positive("El area debe ser mayor a 0"),
-  coefficient: z.coerce
-    .number()
-    .min(0, "El coeficiente debe ser 0 o mayor")
-    .max(100, "El coeficiente no puede superar 100"),
 });
 
 type UnitFormData = z.infer<typeof unitSchema>;
@@ -112,6 +111,7 @@ type UnitFormData = z.infer<typeof unitSchema>;
 // -- Component --------------------------------------------------------------
 
 export default function UnitsPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   // Data
@@ -127,7 +127,9 @@ export default function UnitsPage() {
   // Dialogs
   const [showBuildingsDialog, setShowBuildingsDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showCoefficientDialog, setShowCoefficientDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [coefficientSaving, setCoefficientSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Form
@@ -146,7 +148,6 @@ export default function UnitsPage() {
       floor: 1,
       unit_type: "apartment",
       area_m2: 0,
-      coefficient: 0,
     },
   });
 
@@ -244,7 +245,6 @@ export default function UnitsPage() {
       floor: data.floor,
       unit_type: data.unit_type,
       area_m2: data.area_m2,
-      coefficient: data.coefficient,
     });
 
     if (error) {
@@ -269,6 +269,8 @@ export default function UnitsPage() {
     const owner = unit.owners?.find((o) => o.is_current);
     return owner ? owner.full_name : null;
   }
+
+  usePageTransition(containerRef, { ready: !loading });
 
   // -- Loading state --------------------------------------------------------
 
@@ -295,9 +297,9 @@ export default function UnitsPage() {
   // -- Render ---------------------------------------------------------------
 
   return (
-    <div className="space-y-6">
+    <div ref={containerRef} className="space-y-6">
       {/* ---- Header ---- */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="anim-header flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <h2 className="text-lg font-semibold tracking-tight">Unidades</h2>
           <p className="text-sm text-muted-foreground">
@@ -313,6 +315,16 @@ export default function UnitsPage() {
             <Building2 className="mr-1.5 h-3.5 w-3.5" />
             Gestionar torres
           </Button>
+          {units.length >= 2 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCoefficientDialog(true)}
+            >
+              <Percent className="mr-1.5 h-3.5 w-3.5" />
+              Coeficientes
+            </Button>
+          )}
           <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             Nueva unidad
@@ -323,7 +335,7 @@ export default function UnitsPage() {
       {/* ---- Summary stats ---- */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total */}
-        <div className="rounded-lg border bg-background px-4 py-3">
+        <div className="anim-kpi rounded-lg border bg-background px-4 py-3">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Total de unidades
           </p>
@@ -333,7 +345,7 @@ export default function UnitsPage() {
         </div>
 
         {/* Coefficient */}
-        <div className="rounded-lg border bg-background px-4 py-3">
+        <div className="anim-kpi rounded-lg border bg-background px-4 py-3">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Coeficiente total
           </p>
@@ -359,7 +371,7 @@ export default function UnitsPage() {
         </div>
 
         {/* Active */}
-        <div className="rounded-lg border bg-background px-4 py-3">
+        <div className="anim-kpi rounded-lg border bg-background px-4 py-3">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Activas
           </p>
@@ -374,7 +386,7 @@ export default function UnitsPage() {
         </div>
 
         {/* Type breakdown */}
-        <div className="rounded-lg border bg-background px-4 py-3">
+        <div className="anim-kpi rounded-lg border bg-background px-4 py-3">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Por tipo
           </p>
@@ -402,17 +414,37 @@ export default function UnitsPage() {
         <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
-            <p className="font-medium">Coeficientes no balanceados</p>
-            <p className="mt-0.5 text-amber-800 dark:text-amber-300">
-              La suma de coeficientes es {formatCoefficient(coefficientSum)}%.
-              Debe ser exactamente 100.000000% para cumplir con la Ley 675.
-            </p>
+            {coefficientSum < 0.0001 ? (
+              <>
+                <p className="font-medium">Coeficientes no configurados</p>
+                <p className="mt-0.5 text-amber-800 dark:text-amber-300">
+                  Los coeficientes de copropiedad no han sido distribuidos.
+                  Deben sumar 100% para cumplir con la Ley 675.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-medium">Coeficientes no balanceados</p>
+                <p className="mt-0.5 text-amber-800 dark:text-amber-300">
+                  La suma de coeficientes es {formatCoefficient(coefficientSum)}%.
+                  Debe ser exactamente 100.000000% para cumplir con la Ley 675.
+                </p>
+              </>
+            )}
+            {units.length >= 2 && (
+              <button
+                className="mt-1.5 text-xs font-medium text-amber-900 underline underline-offset-2 hover:text-amber-700 dark:text-amber-200 dark:hover:text-amber-100"
+                onClick={() => setShowCoefficientDialog(true)}
+              >
+                Gestionar coeficientes
+              </button>
+            )}
           </div>
         </div>
       )}
 
       {/* ---- Filters ---- */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="anim-filter flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 sm:max-w-xs">
           <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -459,7 +491,7 @@ export default function UnitsPage() {
       </div>
 
       {/* ---- Table ---- */}
-      <div className="rounded-lg border">
+      <div className="anim-table rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -696,45 +728,25 @@ export default function UnitsPage() {
                 )}
               </div>
 
-              {/* Area + Coefficient row */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="unit-area">
-                    Area m<sup>2</sup>
-                  </Label>
-                  <Input
-                    id="unit-area"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    placeholder="45.50"
-                    {...register("area_m2")}
-                    aria-invalid={!!errors.area_m2}
-                  />
-                  {errors.area_m2 && (
-                    <p className="text-xs text-destructive">
-                      {errors.area_m2.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="unit-coefficient">Coeficiente</Label>
-                  <Input
-                    id="unit-coefficient"
-                    type="number"
-                    step="0.000001"
-                    min="0"
-                    max="100"
-                    placeholder="1.234567"
-                    {...register("coefficient")}
-                    aria-invalid={!!errors.coefficient}
-                  />
-                  {errors.coefficient && (
-                    <p className="text-xs text-destructive">
-                      {errors.coefficient.message}
-                    </p>
-                  )}
-                </div>
+              {/* Area */}
+              <div className="space-y-1.5">
+                <Label htmlFor="unit-area">
+                  Area m<sup>2</sup>
+                </Label>
+                <Input
+                  id="unit-area"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="45.50"
+                  {...register("area_m2")}
+                  aria-invalid={!!errors.area_m2}
+                />
+                {errors.area_m2 && (
+                  <p className="text-xs text-destructive">
+                    {errors.area_m2.message}
+                  </p>
+                )}
               </div>
 
               <DialogFooter>
@@ -751,6 +763,40 @@ export default function UnitsPage() {
               </DialogFooter>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ---- Coefficient editor dialog ---- */}
+      <Dialog open={showCoefficientDialog} onOpenChange={setShowCoefficientDialog}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Gestionar coeficientes</DialogTitle>
+            <DialogDescription>
+              Distribuye los coeficientes de copropiedad (Ley 675). Deben sumar exactamente 100%.
+            </DialogDescription>
+          </DialogHeader>
+          <CoefficientEditor
+            units={units.map((u) => ({
+              id: u.id,
+              number: u.number,
+              building_name: u.building?.name ?? "--",
+              unit_type: u.unit_type,
+              coefficient: Number(u.coefficient),
+            }))}
+            onSave={async (updates) => {
+              setCoefficientSaving(true);
+              const supabase = createClient();
+              await Promise.all(
+                updates.map(({ id, coefficient }) =>
+                  supabase.from("units").update({ coefficient }).eq("id", id)
+                )
+              );
+              setCoefficientSaving(false);
+              setShowCoefficientDialog(false);
+              fetchData();
+            }}
+            saving={coefficientSaving}
+          />
         </DialogContent>
       </Dialog>
     </div>

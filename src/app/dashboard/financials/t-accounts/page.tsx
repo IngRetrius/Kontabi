@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { usePageTransition } from "@/hooks/use-page-transition";
 import type { Account } from "@/types/database";
 import { formatCOP, formatShortDate } from "@/lib/utils/format";
 import {
@@ -49,6 +50,7 @@ interface AccountOption {
 // -- Page Component ----------------------------------------------------------
 
 export default function TAccountsPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
   const [tAccountData, setTAccountData] = useState<TAccountData | null>(null);
@@ -282,6 +284,8 @@ export default function TAccountsPage() {
     gasto: "Gastos",
   };
 
+  usePageTransition(containerRef, { ready: !loading });
+
   // -- Loading ---------------------------------------------------------------
 
   if (loading) {
@@ -297,7 +301,7 @@ export default function TAccountsPage() {
   // -- Render ----------------------------------------------------------------
 
   return (
-    <div className="space-y-5">
+    <div ref={containerRef} className="space-y-5">
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-sm text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0" />
@@ -306,11 +310,11 @@ export default function TAccountsPage() {
       )}
 
       {/* Controls */}
-      <Card>
+      <Card className="anim-card">
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-sm">T-Accounts</CardTitle>
+              <CardTitle className="font-display text-sm">T-Accounts</CardTitle>
               <CardDescription>
                 Visualizacion de movimientos por cuenta en formato clasico T
               </CardDescription>
